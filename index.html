@@ -220,6 +220,11 @@ const norm=s=>String(s||'').trim().toLowerCase();
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const $=s=>document.querySelector(s);
 
+// Werte aus dem Kurzbefehl: ohne Tausendertrennung, Komma oder Punkt = Dezimalzeichen (z. B. 285,956)
+function parseImportNum(s){
+  const m=String(s??'').match(/-?\d+(?:[.,]\d+)?/); if(!m) return null;
+  const n=parseFloat(m[0].replace(',','.')); return isFinite(n)?n:null;
+}
 function parseNum(s){
   const m=String(s??'').match(/-?[\d.,]+/); if(!m) return null;
   let t=m[0];
@@ -781,8 +786,8 @@ function importText(text){
     if(!m) continue; const f=KEYMAP[m[1].toLowerCase()]; if(!f) continue;
     cur=cur||{};
     if(f==='date'){if(cur.date){blocks.push(cur);cur={}}const dk=parseDate(m[2]);if(dk)cur.date=dk}
-    else if(f==='weight'){const w=parseNum(m[2]);if(w&&w>20)cur.weight=w}
-    else cur[f]=parseNum(m[2])??0;
+    else if(f==='weight'){const w=parseImportNum(m[2]);if(w&&w>20)cur.weight=w}
+    else cur[f]=parseImportNum(m[2])??0;
   }
   if(cur&&Object.keys(cur).length) blocks.push(cur);
   const done=[];
