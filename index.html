@@ -248,16 +248,17 @@ function parseRange(v){const m=String(v??'').match(/(\d+)\s*(?:[-–—\/]|bis|\
   if(m){let a=+m[1],b=+m[2];if(a>b)[a,b]=[b,a];return{repsMin:Math.max(1,a),repsMax:Math.max(1,b)}}
   const n=parseInt(v);return n>0?{repsMin:n,repsMax:n}:null}
 function migrateTemplates(st){(st.templates||[]).forEach(t=>t.exercises.forEach(e=>{if(e.repsMin==null){const n=parseInt(e.reps)||10;e.repsMin=n;e.repsMax=n}delete e.reps}))}
-const MY_PLAN="Dienstag – Torso A\n1\tSchrägbank Kurzhantel\t2\t6–10\n2\tLatzug breit\t2\t6–10\n3\tRudern eng am Kabel\t2\t8–12\n4\tButterfly\t2\t10–15\n5\tSeitheben Kabel\t2\t12–20\n6\tReverse Butterfly\t2\t12–20\n\nMittwoch – Limbs A\n1\tBeinpresse\t2\t6–10\n2\tRückenstrecker, hüftdominant\t2\t8–12\n3\tBeinbeuger\t2\t8–12\n4\tBeinstrecker\t2\t10–15\n5\tWadenmaschine\t2\t8–15\n6\tPreacher Curls\t3\t8–12\n7\tTrizeps Cable Pushdown\t3\t8–12\n8\tBauchpresse\t2\t10–15\n\nDonnerstag – Torso B\n1\tT-Bar Rudern\t2\t6–10\n2\tSchrägbank Kurzhantel\t2\t8–12\n3\tLatzug breit\t2\t8–12\n4\tSchulterpresse Maschine\t2\t8–12\n5\tButterfly\t2\t10–15\n6\tSeitheben Kabel\t2\t12–20\n7\tReverse Butterfly\t2\t12–20\n\nSamstag – Limbs B\n1\tBeinbeuger\t2\t8–12\n2\tBeinpresse\t2\t8–12\n3\tRückenstrecker, hüftdominant\t2\t10–15\n4\tBeinstrecker\t2\t10–15\n5\tWadenmaschine\t2\t8–15\n6\tHammercurls am Kabel\t3\t8–12\n7\tTrizeps Overhead Cable Extension\t3\t10–15\n8\tBauchpresse\t2\t10–15";
+const MY_PLAN="Dienstag – Torso A\n1\tSchrägbank Kurzhantel\t2\t6–10\n2\tLatzug breit\t2\t6–10\n3\tRudern eng am Kabel\t2\t6–10\n4\tButterfly\t2\t8–12\n5\tSeitheben Kabel\t2\t8–12\n6\tReverse Butterfly\t2\t8–12\n7\tBauchpresse\t2\t8–12\n\nMittwoch – Limbs A\n1\tBeinpresse\t2\t6–10\n2\tRückenstrecker, hüftdominant\t2\t8–12\n3\tBeinbeuger\t2\t8–12\n4\tBeinstrecker\t2\t8–12\n5\tWadenmaschine\t2\t8–12\n6\tPreacher Curls\t3\t8–12\n7\tTrizeps Cable Pushdown\t3\t8–12\n\nDonnerstag – Torso B\n1\tT-Bar Rudern\t2\t6–10\n2\tSchrägbank Kurzhantel\t2\t6–10\n3\tLatzug breit\t2\t6–10\n4\tSchulterpresse Maschine\t2\t6–10\n5\tButterfly\t2\t8–12\n6\tSeitheben Kabel\t2\t8–12\n7\tReverse Butterfly\t2\t8–12\n\nSamstag – Limbs B\n1\tBeinbeuger\t2\t8–12\n2\tBeinpresse\t2\t6–10\n3\tRückenstrecker, hüftdominant\t2\t8–12\n4\tBeinstrecker\t2\t8–12\n5\tWadenmaschine\t2\t8–12\n6\tHammercurls am Kabel\t3\t8–12\n7\tTrizeps Overhead Cable Extension\t3\t8–12\n8\tBauchpresse\t2\t8–12";
 // Trainingsplan als Text: Überschrift = Einheit, Zeilen = Nr. Übung Sätze Wdh.
 function parsePlan(text){
   const out=[];let cur=null;
   for(let line of String(text).split(/\r?\n/)){
-    line=line.replace(/\u00a0/g,' ').trim(); if(!line||/^nr\.?(\s|\t|$)/i.test(line)) continue;
+    line=line.replace(/\u00a0/g,' ').trim(); if(!line||/^nr\.?(\s|\t|$)/i.test(line)||/^(gesamt|summe)\b/i.test(line)) continue;
     const cols=line.split(/\t+/).map(x=>x.trim()).filter(Boolean);
     let name,sets,reps;
     if(cols.length>=4&&/^\d+$/.test(cols[0])){[,name,sets,reps]=cols}
     else{const m=line.match(/^\d+[.)]?\s+(.+?)\s+(\d+)\s*(?:x|×)?\s+(\d+\s*(?:[-–—]|bis)\s*\d+|\d+)\s*(?:wdh\.?)?$/i);if(m){[,name,sets,reps]=m}}
+    if(name&&!cur){cur={name:'Einheit '+(out.length+1),exercises:[]};out.push(cur)}
     if(name&&cur){const r=parseRange(reps);cur.exercises.push({name,sets:Math.max(1,parseInt(sets)||1),...(r||{repsMin:10,repsMax:10})})}
     else if(!/^\d/.test(line)){cur={name:line.replace(/\s+[-–]\s+/,' – '),exercises:[]};out.push(cur)}
   }
