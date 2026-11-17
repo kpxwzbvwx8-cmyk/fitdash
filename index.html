@@ -106,7 +106,7 @@ label.field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(
 .setrow input{text-align:right;padding:8px}
 .setrow .ps{font-size:12px;color:var(--muted);white-space:nowrap}
 .xbtn{border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;width:30px;height:30px}
-.exrow{display:grid;grid-template-columns:minmax(0,1fr) 64px 64px 30px;gap:6px;align-items:end}
+.exrow{display:grid;grid-template-columns:minmax(0,1fr) 56px 76px 30px;gap:6px;align-items:end}
 .rowflex{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
 .cal-head{display:flex;align-items:center;justify-content:space-between}
 .cal-head b{font-family:var(--font-display);font-size:20px}
@@ -199,7 +199,7 @@ const ICON={
   nutrition:'<svg class="i" viewBox="0 0 24 24"><path d="M7 3v8M4 3v5a3 3 0 0 0 6 0V3M7 11v10M17 3c-2 0-3 3-3 7h3v11"/></svg>',
   workout:'<svg class="i" viewBox="0 0 24 24"><path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/></svg>'
 };
-const GOALS={steps:{t:'Schritte'},nutrition:{t:'Ernährung'},workout:{t:'Sport'}};
+const GOALS={steps:{t:'Schritte'},nutrition:{t:'Ernährung'},workout:{t:'Krafttraining'}};
 const NUTR=[['kcal','Kalorien','kcal'],['protein','Protein','g'],['fat','Fett','g'],['carbs','Kohlenhydrate','g'],['fiber','Ballaststoffe','g']];
 const STATUS={met:'erreicht',missed:'verfehlt',pending:'läuft noch',nodata:'keine Daten'};
 const KEY='fitdash.v1';
@@ -242,9 +242,16 @@ function parseNum(s){
 const MEASURES_DEFAULT=['Brust','Taille','Bauch','Hüfte','Oberarm','Oberschenkel','Wade','Körperfett'];
 const mUnit=n=>/fett/i.test(n)?'%':'cm';
 function defaults(){return{settings:{dashboard:['steps','nutrition','workout'],stepGoal:10000,nutrition:{},weekly:4,shortcut:'FitDash Sync',bmr:null,measures:[...MEASURES_DEFAULT]},days:{},body:{},templates:[],sessions:[],demo:false,lastSync:null,recapSeen:null}}
+// Wiederholungen als Bereich, z. B. 6–10
+function repRange(e){if(!e)return '';if(e.repsMin!=null)return e.repsMin===e.repsMax?String(e.repsMin):`${e.repsMin}–${e.repsMax}`;return e.reps!=null?String(e.reps):''}
+function parseRange(v){const m=String(v??'').match(/(\d+)\s*(?:[-–—\/]|bis|\s)\s*(\d+)/i);
+  if(m){let a=+m[1],b=+m[2];if(a>b)[a,b]=[b,a];return{repsMin:Math.max(1,a),repsMax:Math.max(1,b)}}
+  const n=parseInt(v);return n>0?{repsMin:n,repsMax:n}:null}
+function migrateTemplates(st){(st.templates||[]).forEach(t=>t.exercises.forEach(e=>{if(e.repsMin==null){const n=parseInt(e.reps)||10;e.repsMin=n;e.repsMax=n}delete e.reps}))}
+function targetFor(d,name){const t=d.templateId&&S.templates.find(x=>x.id===d.templateId);return t&&t.exercises.find(e=>norm(e.name)===norm(name))}
 function load(){
   try{const raw=localStorage.getItem(KEY);
-    if(raw){const s=Object.assign(defaults(),JSON.parse(raw));s.settings=Object.assign(defaults().settings,s.settings);return s}}catch(e){}
+    if(raw){const s=Object.assign(defaults(),JSON.parse(raw));s.settings=Object.assign(defaults().settings,s.settings);migrateTemplates(s);return s}}catch(e){}
   const d=defaults();seedDemo(d);return d;
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
@@ -268,9 +275,9 @@ function seedDemo(d){
   const r1=x=>Math.round(x*10)/10;
   for(let i=84;i>=0;i-=2) d.body[ymd(addDays(t,-i))]={weight:r1(82.3+i*0.045+(((i*31)%7)-3)*0.12)};
   for(let i=84;i>=0;i-=14) Object.assign(d.body[ymd(addDays(t,-i))],{Brust:r1(103-(84-i)*0.012),Taille:r1(90.5+i*0.05),Bauch:r1(93+i*0.06),'Hüfte':r1(100+i*0.03),Oberarm:r1(36+(84-i)*0.008),Oberschenkel:r1(58.5+i*0.012),Wade:39,'Körperfett':r1(20.5+i*0.035)});
-  const tp={id:'demo-push',name:'Push',exercises:[{name:'Bankdrücken',sets:3,reps:8},{name:'Schulterdrücken',sets:3,reps:10},{name:'Dips',sets:3,reps:10},{name:'Trizepsdrücken',sets:3,reps:12}]};
-  const tl={id:'demo-pull',name:'Pull',exercises:[{name:'Klimmzüge',sets:3,reps:8},{name:'Langhantelrudern',sets:3,reps:10},{name:'Bizepscurls',sets:3,reps:12}]};
-  const tb={id:'demo-legs',name:'Beine',exercises:[{name:'Kniebeugen',sets:4,reps:6},{name:'Rumänisches Kreuzheben',sets:3,reps:8},{name:'Beinpresse',sets:3,reps:12},{name:'Wadenheben',sets:4,reps:15}]};
+  const tp={id:'demo-push',name:'Push',exercises:[{name:'Bankdrücken',sets:3,repsMin:6,repsMax:8},{name:'Schulterdrücken',sets:3,repsMin:8,repsMax:10},{name:'Dips',sets:3,repsMin:8,repsMax:12},{name:'Trizepsdrücken',sets:3,repsMin:10,repsMax:12}]};
+  const tl={id:'demo-pull',name:'Pull',exercises:[{name:'Klimmzüge',sets:3,repsMin:6,repsMax:10},{name:'Langhantelrudern',sets:3,repsMin:8,repsMax:10},{name:'Bizepscurls',sets:3,repsMin:10,repsMax:12}]};
+  const tb={id:'demo-legs',name:'Beine',exercises:[{name:'Kniebeugen',sets:4,repsMin:5,repsMax:8},{name:'Rumänisches Kreuzheben',sets:3,repsMin:6,repsMax:10},{name:'Beinpresse',sets:3,repsMin:10,repsMax:12},{name:'Wadenheben',sets:4,repsMin:12,repsMax:15}]};
   d.templates=[tp,tl,tb];
   const base={'Bankdrücken':55,'Schulterdrücken':27.5,'Dips':0,'Trizepsdrücken':17.5,'Klimmzüge':0,'Langhantelrudern':45,'Bizepscurls':10,'Kniebeugen':70,'Rumänisches Kreuzheben':60,'Beinpresse':100,'Wadenheben':50};
   const inc={'Bankdrücken':1.25,'Schulterdrücken':0.6,'Trizepsdrücken':0.5,'Langhantelrudern':1,'Bizepscurls':0.3,'Kniebeugen':1.8,'Rumänisches Kreuzheben':1.5,'Beinpresse':3,'Wadenheben':1.2};
@@ -279,7 +286,7 @@ function seedDemo(d){
     const ws=addDays(weekStart(t),-7*w); const offs=w%2?[0,2,4]:[0,1,3,5];
     offs.forEach(off=>{const date=addDays(ws,off); if(date>t) return; const tmpl=rot[n%3];
       d.sessions.push({id:'demo-s'+n,ts:date.getTime(),date:ymd(date),templateId:tmpl.id,title:tmpl.name,
-        exercises:tmpl.exercises.map(e=>({name:e.name,sets:Array.from({length:e.sets},(_,j)=>({w:base[e.name]?Math.round((base[e.name]+(11-w)*(inc[e.name]||0))*2)/2:0,r:Math.max(e.reps-(j===e.sets-1?1:0),1)}))}))});
+        exercises:tmpl.exercises.map(e=>({name:e.name,sets:Array.from({length:e.sets},(_,j)=>({w:base[e.name]?Math.round((base[e.name]+(11-w)*(inc[e.name]||0))*2)/2:0,r:Math.max(e.repsMax-(j===e.sets-1?1:0),1)}))}))});
       n++;});
   }
   d.lastSync=Date.now()-1000*60*42;
@@ -337,7 +344,7 @@ function weekSummary(ws){
   const parts=[];
   if(en.includes('steps')){const st=past.map(stepsStatus),met=st.filter(x=>x==='met').length,ev=st.filter(x=>x==='met'||x==='missed').length;parts.push({t:'Schritte',met,ev,r:ev?met/ev:null,txt:`${met} von ${ev} Tagen`})}
   if(en.includes('nutrition')){const st=past.map(nutrStatus),met=st.filter(x=>x==='met').length,ev=st.filter(x=>x==='met'||x==='missed').length;parts.push({t:'Ernährung',met,ev,r:ev?met/ev:null,txt:`${met} von ${ev} Tagen`})}
-  if(en.includes('workout')){const c=weekCount(ws),t=S.settings.weekly;parts.push({t:'Sport',met:c,ev:t,r:Math.min(c/t,1),txt:`${c} von ${t} Einheiten`})}
+  if(en.includes('workout')){const c=weekCount(ws),t=S.settings.weekly;parts.push({t:'Krafttraining',met:c,ev:t,r:Math.min(c/t,1),txt:`${c} von ${t} Einheiten`})}
   const rs=parts.filter(p=>p.r!=null),score=rs.length?Math.round(rs.reduce((a,p)=>a+p.r,0)/rs.length*100):null;
   const rows=deficitRows(ws),dd=rows.filter(r=>r.def!=null),total=dd.reduce((a,r)=>a+r.def,0);
   const wNow=avgWeight(keys[0],ymd(addDays(ws,7))),wPrev=avgWeight(ymd(addDays(ws,-7)),keys[0]);
@@ -501,7 +508,7 @@ workout(){
     ${S.templates.map(tp=>`<button class="rowbtn" data-a="push" data-v="template" data-id="${tp.id}"><span class="grow"><b>${esc(tp.name)}</b><br><span class="muted small">${esc(tp.exercises.map(e=>e.name).join(' · '))||'Keine Übungen'}</span></span><span class="muted">›</span></button>`).join('')}
     <button class="rowbtn" data-a="newTemplate"><span class="link">+ Neue Trainingseinheit anlegen</span></button></div>
     <h2>Gebuchte Trainings</h2><div class="list">${ss.length?ss.map(s=>`<button class="rowbtn" data-a="editSession" data-id="${s.id}"><span class="grow"><b>${esc(s.title)}</b><br><span class="muted small">${fmtDayLong(s.date)}</span></span><span class="muted">›</span></button>`).join(''):'<div class="muted">Noch nichts gebucht.</div>'}</div>`;
-  return{title:'Sport',top,html};
+  return{title:'Krafttraining',top,html};
 },
 template(c){
   const tp=S.templates.find(t=>t.id===c.id); if(!tp) return{title:'Vorlage',html:'<p class="muted">Diese Vorlage gibt es nicht mehr.</p>'};
@@ -509,7 +516,7 @@ template(c){
   const html=`<button class="btn primary wide" data-a="startSession" data-id="${tp.id}">Training starten und Werte eintragen</button>
     ${last?`<span class="muted small">Zuletzt gebucht: ${fmtDayLong(last.date)}</span>`:''}
     <h2>Übungen</h2><div class="list">${tp.exercises.length?tp.exercises.map(e=>{const pe=last&&last.exercises.find(x=>norm(x.name)===norm(e.name));
-      return `<div><span class="grow"><b>${esc(e.name)}</b><br><span class="muted small">${e.sets} Sätze × ${e.reps} Wdh.</span>${pe&&pe.sets.length?`<br><span class="muted tiny">Letztes Mal: (${setsSummary(pe.sets)})</span>`:''}</span></div>`}).join(''):'<div class="muted">Keine Übungen. Tippe auf „Vorlage bearbeiten“.</div>'}</div>
+      return `<div><span class="grow"><b>${esc(e.name)}</b><br><span class="muted small">${e.sets} Sätze × ${repRange(e)} Wdh.</span>${pe&&pe.sets.length?`<br><span class="muted tiny">Letztes Mal: (${setsSummary(pe.sets)})</span>`:''}</span></div>`}).join(''):'<div class="muted">Keine Übungen. Tippe auf „Vorlage bearbeiten“.</div>'}</div>
     <button class="btn wide" data-a="editTemplate" data-id="${tp.id}">Vorlage bearbeiten</button>`;
   return{title:tp.name,html};
 },
@@ -519,9 +526,10 @@ tedit(c){
     <h2>Übungen</h2><div class="panel">${d.exercises.map((e,i)=>`<div class="exrow">
       <label class="field" for="te-n-${i}">Übung<input id="te-n-${i}" type="text" value="${esc(e.name)}" placeholder="z. B. Bankdrücken" data-in="tex" data-i="${i}" data-f="name"></label>
       <label class="field" for="te-s-${i}">Sätze<input id="te-s-${i}" type="text" inputmode="numeric" value="${e.sets}" data-in="tex" data-i="${i}" data-f="sets"></label>
-      <label class="field" for="te-r-${i}">Wdh.<input id="te-r-${i}" type="text" inputmode="numeric" value="${e.reps}" data-in="tex" data-i="${i}" data-f="reps"></label>
+      <label class="field" for="te-r-${i}">Wdh.<input id="te-r-${i}" type="text" inputmode="text" autocomplete="off" placeholder="6-10" value="${esc(e.reps)}" data-in="tex" data-i="${i}" data-f="reps"></label>
       <button class="xbtn" data-a="tRm" data-i="${i}" aria-label="Übung löschen">×</button></div>`).join('')}
-      <button class="btn sm" data-a="tAdd">+ Übung hinzufügen</button></div>
+      <button class="btn sm" data-a="tAdd">+ Übung hinzufügen</button>
+      <span class="muted small">Wiederholungen als Bereich eingeben, z. B. <b>6-10</b>, oder als feste Zahl, z. B. <b>8</b>.</span></div>
     <button class="btn primary wide" data-a="tSave">Vorlage sichern</button>
     ${c.id?(c.confirmDel?`<div class="panel"><span>Vorlage wirklich löschen? Gebuchte Trainings bleiben erhalten.</span><div class="rowflex"><button class="btn" data-a="tDelNo">Abbrechen</button><button class="btn danger" data-a="tDelYes">Löschen</button></div></div>`:`<button class="btn danger wide" data-a="tDel">Vorlage löschen</button>`):''}`;
   return{title:c.id?'Vorlage bearbeiten':'Neue Einheit',html};
@@ -532,10 +540,12 @@ session(c){
       <label class="field" for="s-date">Datum<input id="s-date" type="date" value="${d.date}" data-in="sDate"></label></div>
     ${d.ex.map((e,i)=>{const prev=prevSets(d,e.name);return `<section class="ex">
       <input class="exname" id="ex-${i}" aria-label="Übung" value="${esc(e.name)}" placeholder="Übung" data-in="exName" data-i="${i}">
+      ${(()=>{const tg=targetFor(d,e.name);if(!tg)return '';const up=prev&&prev.length&&prev.every(x=>x.r>=tg.repsMax);
+        return `<p class="prev">Ziel: ${tg.sets} × ${repRange(tg)} Wdh.${up?' · <b class="pos">Letztes Mal überall oberes Ende erreicht: Gewicht erhöhen</b>':''}</p>`})()}
       ${prev?`<p class="prev">Letztes Mal: (${setsSummary(prev)})</p>`:''}
       ${e.sets.map((s,j)=>{const p=prev&&prev[j];return `<div class="setrow"><span class="muted">${j+1}.</span>
         <input id="w-${i}-${j}" aria-label="Gewicht Satz ${j+1}" type="text" inputmode="decimal" placeholder="${p?fmtRaw(p.w):'kg'}" value="${esc(s.w)}" data-in="set" data-i="${i}" data-j="${j}" data-f="w"><span class="muted small">kg</span>
-        <input id="r-${i}-${j}" aria-label="Wiederholungen Satz ${j+1}" type="text" inputmode="numeric" placeholder="${p?p.r:'Wdh'}" value="${esc(s.r)}" data-in="set" data-i="${i}" data-j="${j}" data-f="r"><span class="muted small">Wdh</span>
+        <input id="r-${i}-${j}" aria-label="Wiederholungen Satz ${j+1}" type="text" inputmode="numeric" placeholder="${p?p.r:(targetFor(d,e.name)?repRange(targetFor(d,e.name)):'Wdh')}" value="${esc(s.r)}" data-in="set" data-i="${i}" data-j="${j}" data-f="r"><span class="muted small">Wdh</span>
         <span class="ps">${p?`(${fmt1(p.w)}×${p.r})`:''}</span>
         <button class="xbtn" data-a="sRmSet" data-i="${i}" data-j="${j}" aria-label="Satz löschen">×</button></div>`}).join('')}
       <div class="rowflex"><button class="btn sm" data-a="sAddSet" data-i="${i}">+ Satz</button><button class="btn sm danger" data-a="sRmEx" data-i="${i}">Übung entfernen</button></div></section>`}).join('')}
@@ -579,7 +589,7 @@ day(c){
       <div><span class="grow">Aktiv verbrannt</span><span class="num">${fmtInt(d.active)} kcal</span></div></div>
     <h2>Ernährung</h2><div class="list"><div><span class="grow">Status</span>${chip(nutrStatus(k))}</div>
       ${NUTR.map(([n,t,u])=>{const v=d[n]||0,s=nutrientStatus(tg[n],v);return `<div><span class="grow">${t}<br><span class="muted tiny">${targetText(tg[n],u)}</span></span><span class="num">${fmt1(v)} ${u}</span>${s!=='nodata'?`<i class="dot ${s}"></i>`:''}</div>`}).join('')}</div>`;
-  const html=`<h2>Sport</h2><div class="list">
+  const html=`<h2>Krafttraining</h2><div class="list">
       ${ss.map(s=>`<button class="rowbtn" data-a="editSession" data-id="${s.id}"><span class="grow"><b>${esc(s.title)}</b><br><span class="muted small">${esc(s.exercises.map(e=>e.name).join(' · '))}</span></span><span class="muted">›</span></button>`).join('')||'<div class="muted">Kein Training gebucht</div>'}
       <div><span class="grow">Wochenpensum</span><span class="num">${weekCount(weekStart(parseYmd(k)))} / ${S.settings.weekly}</span></div></div>
     ${S.templates.length?`<details><summary>Training an diesem Tag buchen</summary><div class="list">${S.templates.map(t=>`<button class="rowbtn" data-a="startSession" data-id="${t.id}" data-k="${k}"><span class="grow">${esc(t.name)}</span><span class="muted">›</span></button>`).join('')}</div></details>`:''}
@@ -603,7 +613,7 @@ week(c){
   return{title:weekLabel(ws),sub:weekRange(ws),html};
 },
 stats(c){
-  const segs=[['weeks','Wochen'],['weight','Gewicht'],['body','Maße'],['sport','Sport']];
+  const segs=[['weeks','Wochen'],['weight','Gewicht'],['body','Maße'],['sport','Kraft']];
   let html=`<div class="seg" role="tablist">${segs.map(([k,t])=>`<button class="${c.seg===k?'on':''}" data-a="seg" data-s="${k}">${t}</button>`).join('')}</div>`;
   const perSel=`<div class="seg">${[['week','Wöchentlich'],['month','Monatlich'],['year','Jährlich']].map(([k,t])=>`<button class="${c.per===k?'on':''}" data-a="per" data-p="${k}">${t}</button>`).join('')}</div>`;
   const bodyRows=Object.keys(S.body).sort().reverse();
@@ -629,7 +639,7 @@ stats(c){
       <button class="btn primary" data-a="saveMeasures">Speichern</button><span class="muted tiny">Leere Felder werden nicht überschrieben. Weitere Maße legst du unter „Mehr“ an.</span></div>
       <h2>Einträge</h2><div class="list">${bodyRows.filter(k=>ms.some(x=>S.body[k][x]!=null)).slice(0,15).map(k=>`<div><span class="grow">${fmtDay(k)}<br><span class="muted tiny">${ms.filter(x=>S.body[k][x]!=null).map(x=>`${esc(x)} ${fmt1(S.body[k][x])}`).join(' · ')}</span></span><button class="xbtn" data-a="delBody" data-k="${k}" data-f="measures" aria-label="Maße löschen">×</button></div>`).join('')||'<div class="muted">Noch keine Einträge.</div>'}</div>`;
   }else{
-    if(!S.templates.length) return{title:'Statistik',html:html+'<p class="muted">Lege zuerst unter Sport eine Vorlage an.</p>'};
+    if(!S.templates.length) return{title:'Statistik',html:html+'<p class="muted">Lege zuerst unter Krafttraining eine Vorlage an.</p>'};
     if(!S.templates.some(t=>t.id===c.t)) c.t=S.templates[0].id;
     const t=S.templates.find(x=>x.id===c.t),ss=S.sessions.filter(x=>x.templateId===t.id);
     const overall=series(ss.map(x=>{const a=x.exercises.map(exerciseAvg).filter(v=>v!=null);return{k:x.date,v:a.length?a.reduce((p,q)=>p+q,0)/a.length:null}}),c.per);
@@ -687,7 +697,7 @@ function checkRecap(){
   const last=addDays(weekStart(new Date()),-7),k=ymd(last);
   if(S.recapSeen===k||!$('#modal').hidden) return;
   const sm=weekSummary(last);
-  if(!(sm.defDays||weekCount(last)||sm.parts.some(p=>p.t!=='Sport'&&p.ev>0))){S.recapSeen=k;save();return}
+  if(!(sm.defDays||weekCount(last)||sm.parts.some(p=>p.t!=='Krafttraining'&&p.ev>0))){S.recapSeen=k;save();return}
   $('#modal').innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rtitle"><div><span class="muted small">Wochenrückblick · ${weekRange(last)}</span><h3 id="rtitle">Deine Woche ${weekLabel(last)}</h3></div>
     ${weekSummaryHtml(sm)}<div class="rowflex"><button class="btn" data-a="recapClose">Schließen</button><button class="btn primary" data-a="recapOpen" data-k="${k}">Woche im Detail</button></div></div>`;
   $('#modal').hidden=false;
@@ -837,12 +847,12 @@ const A={
   toggleGoal(el){const k=el.dataset.k,a=S.settings.dashboard;S.settings.dashboard=a.includes(k)?a.filter(x=>x!==k):[...a,k];save();render()},
   moveGoal(el){const a=S.settings.dashboard,i=a.indexOf(el.dataset.k),j=i+Number(el.dataset.d);if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save();render()},
   weekly(el){S.settings.weekly=Math.max(1,Math.min(14,S.settings.weekly+Number(el.dataset.d)));save();render()},
-  newTemplate(){push({v:'tedit',draft:{name:'',exercises:[{name:'',sets:3,reps:10}]}})},
-  editTemplate(el){const t=S.templates.find(x=>x.id===el.dataset.id);push({v:'tedit',id:t.id,draft:JSON.parse(JSON.stringify({name:t.name,exercises:t.exercises}))})},
-  tAdd(){cur().draft.exercises.push({name:'',sets:3,reps:10});render()},
+  newTemplate(){push({v:'tedit',draft:{name:'',exercises:[{name:'',sets:3,reps:'8-12'}]}})},
+  editTemplate(el){const t=S.templates.find(x=>x.id===el.dataset.id);push({v:'tedit',id:t.id,draft:{name:t.name,exercises:t.exercises.map(e=>({name:e.name,sets:e.sets,reps:repRange(e).replace('–','-')}))}})},
+  tAdd(){cur().draft.exercises.push({name:'',sets:3,reps:'8-12'});render()},
   tRm(el){cur().draft.exercises.splice(Number(el.dataset.i),1);render()},
   tSave(){const c=cur(),d=c.draft;if(!d.name.trim()){toast('Bitte einen Namen eingeben');return}
-    const ex=d.exercises.filter(e=>e.name.trim()).map(e=>({name:e.name.trim(),sets:Math.max(1,parseInt(e.sets)||1),reps:Math.max(1,parseInt(e.reps)||1)}));
+    const ex=d.exercises.filter(e=>e.name.trim()).map(e=>({name:e.name.trim(),sets:Math.max(1,parseInt(e.sets)||1),...(parseRange(e.reps)||{repsMin:10,repsMax:10})}));
     if(c.id){Object.assign(S.templates.find(t=>t.id===c.id),{name:d.name.trim(),exercises:ex})}else S.templates.push({id:uid(),name:d.name.trim(),exercises:ex});
     save();back();toast('Vorlage gesichert')},
   tDel(){cur().confirmDel=true;render()},tDelNo(){cur().confirmDel=false;render()},
@@ -861,8 +871,8 @@ const A={
     if(d.id) Object.assign(S.sessions.find(s=>s.id===d.id),{title,date:d.date,exercises:exs});
     else S.sessions.push({id:uid(),ts:Date.now(),date:d.date,templateId:d.templateId||null,title,exercises:exs});
     const t=d.updT&&S.templates.find(x=>x.id===d.templateId);
-    if(t){const old={};t.exercises.forEach(e=>old[norm(e.name)]=e.reps);
-      t.exercises=d.ex.filter(e=>e.name.trim()).map(e=>({name:e.name.trim(),sets:Math.max(1,e.sets.length),reps:old[norm(e.name)]||parseInt(e.sets[0]?.r)||10}))}
+    if(t){const old={};t.exercises.forEach(e=>old[norm(e.name)]={repsMin:e.repsMin,repsMax:e.repsMax});
+      t.exercises=d.ex.filter(e=>e.name.trim()).map(e=>({name:e.name.trim(),sets:Math.max(1,e.sets.length),...(old[norm(e.name)]||parseRange(e.sets[0]?.r)||{repsMin:10,repsMax:10})}))}
     save();back();toast(d.id?'Training gesichert':'Training gebucht')},
   sDel(){cur().confirmDel=true;render()},sDelNo(){cur().confirmDel=false;render()},
   sDelYes(){const id=cur().draft.id;S.sessions=S.sessions.filter(s=>s.id!==id);save();back();toast('Training gelöscht')},
