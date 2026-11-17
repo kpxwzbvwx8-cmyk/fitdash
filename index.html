@@ -675,7 +675,7 @@ async function shareBackup(){
 
 /* ---------- Navigation ---------- */
 let tab='home';
-const stacks={home:[{v:'dashboard'}],cal:[{v:'calendar',month:null}],stats:[{v:'stats',seg:'weeks',per:'week'}],sync:[{v:'sync'}],more:[{v:'more'}]};
+const stacks={home:[{v:'dashboard'}],cal:[{v:'calendar',month:null}],stats:[{v:'stats',seg:'weight',per:'week'}],sync:[{v:'sync'}],more:[{v:'more'}]};
 const cur=()=>stacks[tab][stacks[tab].length-1];
 function push(o){stacks[tab].push(o);render();window.scrollTo(0,0)}
 function back(){if(stacks[tab].length>1){stacks[tab].pop();render()}}
@@ -986,15 +986,12 @@ profile(c){
   return{title:'Profil',top,html};
 },
 stats(c){
-  const segs=[['weeks','Wochen'],['weight','Gewicht'],['body','Maße'],['sport','Kraft']];
+  const segs=[['weight','Gewicht'],['body','Maße'],['sport','Kraft']];
   let html=`<div class="seg" role="tablist">${segs.map(([k,t])=>`<button class="${c.seg===k?'on':''}" data-a="seg" data-s="${k}">${t}</button>`).join('')}</div>`;
   const perSel=`<div class="seg">${[['week','Wöchentlich'],['month','Monatlich'],['year','Jährlich']].map(([k,t])=>`<button class="${c.per===k?'on':''}" data-a="per" data-p="${k}">${t}</button>`).join('')}</div>`;
   const bodyRows=Object.keys(S.body).sort().reverse();
-  if(c.seg==='weeks'){
-    const ws=allWeeks().map(w=>weekSummary(w));
-    html+=`<p class="muted small" style="margin:0">Jede Woche mit Bewertung, Kaloriendefizit und Gewicht. Antippen öffnet den Rückblick.</p>
-      <div class="list">${ws.length?ws.map(weekRow).join(''):'<div class="muted">Noch keine Daten.</div>'}</div>`;
-  }else if(c.seg==='weight'){
+  if(!['weight','body','sport'].includes(c.seg))c.seg='weight';
+  if(c.seg==='weight'){
     const pts=series(bodyRows.filter(k=>S.body[k].weight).map(k=>({k,v:S.body[k].weight})),c.per);
     html+=`<div class="panel chart"><b>Trend · letzte 120 Tage</b>${trendChart(weightTrend(120))}<span class="muted tiny">Punkte = einzelne Wiegungen, Linie = geglätteter Trend. Der Trend zeigt die echte Entwicklung ohne tägliche Wasserschwankungen.</span></div>`;
     html+=perSel+`<div class="panel chart">${trendKpis(pts,'kg',true)}${lineChart(pts,'kg')}<span class="muted tiny">Durchschnitt aller Wiegungen pro ${c.per==='week'?'Woche':c.per==='month'?'Monat':'Jahr'}.</span></div>
