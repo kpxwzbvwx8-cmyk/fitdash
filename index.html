@@ -275,6 +275,7 @@ h2{margin-top:14px}
 
 <script>
 "use strict";
+const APP_VERSION="2026-11-17.2";
 /* ---------- Grunddaten ---------- */
 const ICON={
   steps:'<svg class="i" viewBox="0 0 24 24"><path d="M8 3c1.7 0 3 2 3 4.5S10 12 8 12s-3-2-3-4.5S6.3 3 8 3zM6 14h4l-.5 4a2 2 0 0 1-3 0zM16 7c1.7 0 3 2 3 4.5S18 16 16 16s-3-2-3-4.5S14.3 7 16 7zM14 18h4l-.5 2.5a2 2 0 0 1-3 0z"/></svg>',
@@ -1161,6 +1162,9 @@ more(){
     <h2>Kurzbefehl</h2><div class="panel"><label class="field" for="scname">Name deines Kurzbefehls<input id="scname" type="text" value="${esc(S.settings.shortcut)}" data-in="scname"></label></div>
     <h2>Energieverbrauch</h2><div class="panel"><label class="field" for="bmr">Grundumsatz in kcal pro Tag<input id="bmr" type="text" inputmode="numeric" placeholder="z. B. 1750" value="${S.settings.bmr??''}" data-in="bmr"></label>
       <span class="muted small">Nur nötig, wenn keine Ruheenergie aus Apple Health kommt. Damit wird das Kaloriendefizit berechnet.</span></div>
+    <h2>App-Version</h2><div class="panel"><div class="rowflex"><span>Installiert</span><b class="num">${APP_VERSION}</b></div>
+      <button class="btn" data-a="updateNow">Nach Update suchen und neu laden</button>
+      <span class="muted tiny">Normalerweise lädt FitDash Updates beim Öffnen automatisch. Deine Daten bleiben dabei erhalten.</span></div>
     <h2>Datensicherung</h2><div class="panel"><span class="muted small">Deine Daten liegen nur auf diesem iPhone. Kopiere ab und zu ein Backup, zum Beispiel in eine Notiz.</span>
       <button class="btn primary" data-a="backupShare">Backup als Datei sichern</button>
       <span class="muted tiny">${S.lastBackup?'Letztes Backup: '+new Date(S.lastBackup).toLocaleString('de-DE',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}):'Noch kein Backup.'} Speichere die Datei z. B. in „Dateien“ oder iCloud Drive. Fotos sind nicht enthalten.</span>
@@ -1445,6 +1449,7 @@ const A={
     S.settings.measures.forEach((m,i)=>{const v=parseNum($('#bm-'+i).value);if(v!=null&&v>0){b[m]=v;b.mt[m]=t;n++}});
     if(!n){toast('Bitte mindestens ein Maß eintragen');return}save();render();window.scrollTo(0,0);toast(`${n} Maß${n===1?'':'e'} gespeichert`)},
   backupShare(){shareBackup()},
+  updateNow(){toast('Suche nach Update …');checkVersion(true)},
   pace(el){S.profile.pace=Number(el.dataset.p);save();refreshLive()},
   applyPlan(){const g=goalPlan();if(!g||!g.intake)return;S.settings.nutrition.kcal={min:null,max:Math.round(g.intake/10)*10};
     if(S.days[todayKey()])upsertDay(todayKey(),{});save();toast(`Ziel gesetzt: max. ${fmtInt(Math.round(g.intake/10)*10)} kcal${S.settings.proteinPerKg?`, Protein ${S.settings.proteinPerKg.toLocaleString('de-DE')} g/kg`:''}`);refreshLive()},
@@ -1546,7 +1551,25 @@ applyTheme();
 render();
 checkRecap();
 loadPhotos().then(()=>{if(PHOTOS.length&&cur().v==='profile')render()});
-if('serviceWorker' in navigator&&location.protocol==='https:'&&!location.hostname.endsWith('claude.ai')){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+// Updates zuverlässig laden: neuer Service Worker übernimmt sofort, Seite lädt einmal neu
+if('serviceWorker' in navigator&&location.protocol==='https:'&&!location.hostname.endsWith('claude.ai')){
+  const hadCtrl=!!navigator.serviceWorker.controller;let reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadCtrl&&!reloaded){reloaded=true;location.reload()}});
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{})});
+  }).catch(()=>{});
+}
+// Neueste Version prüfen: Versionsdatei vom Server mit der eigenen vergleichen
+async function checkVersion(manual){
+  try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();
+    if(j.version&&j.version!==APP_VERSION){if(manual||!sessionStorage.getItem('fd-upd-'+j.version)){try{sessionStorage.setItem('fd-upd-'+j.version,'1')}catch(e){}await hardReload()}}
+    else if(manual)toast('Du hast die neueste Version ('+APP_VERSION+')');
+  }catch(e){if(manual)toast('Keine Verbindung zum Server')}
+}
+async function hardReload(){try{const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}
+  try{const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.update()))}catch(e){}
+  location.replace(location.pathname+'?v='+Date.now())}
+if(location.protocol==='https:'&&!location.hostname.endsWith('claude.ai')){checkVersion(false);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkVersion(false)})}
 </script>
 
 </body></html>
