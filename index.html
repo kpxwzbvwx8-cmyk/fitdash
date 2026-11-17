@@ -283,7 +283,7 @@ h2{margin-top:14px}
 
 <script>
 "use strict";
-const APP_VERSION="2026-11-17.3";
+const APP_VERSION="2026-11-17.4";
 /* ---------- Grunddaten ---------- */
 const ICON={
   steps:'<svg class="i" viewBox="0 0 24 24"><path d="M8 3c1.7 0 3 2 3 4.5S10 12 8 12s-3-2-3-4.5S6.3 3 8 3zM6 14h4l-.5 4a2 2 0 0 1-3 0zM16 7c1.7 0 3 2 3 4.5S18 16 16 16s-3-2-3-4.5S14.3 7 16 7zM14 18h4l-.5 2.5a2 2 0 0 1-3 0z"/></svg>',
@@ -1355,14 +1355,23 @@ function importText(text){
   if(cur&&Object.keys(cur).length) blocks.push(cur);
   const done=[];importText.bad=[];
   // Stundenschritte von Watch und iPhone: pro Stunde den höheren Wert, dann zum Tag addieren
-  const hourly={};importText.noHour=0;
+  // Schritte zusammenführen (Watch und iPhone):
+  //  - mit Uhrzeit (Gruppieren nach Stunde): pro Stunde den höheren Wert, dann Stunden addieren
+  //  - ohne Uhrzeit (Gruppieren nach Tag) oder als "schritte": pro Tag den höheren Wert
+  const hourly={},daily={};importText.noHour=0;
   for(const b of blocks){
-    if(b.badDate||b.stepsHour==null) continue;
-    if(b.hour==null){importText.noHour++;delete b.stepsHour;continue}   // ohne Uhrzeit nicht verwertbar
-    const k=b.date||todayKey(),h=b.hour,day=hourly[k]=hourly[k]||{};
-    day[h]=Math.max(day[h]||0,b.stepsHour);delete b.stepsHour;
+    if(b.badDate)continue;const k=b.date||todayKey();
+    if(b.stepsHour!=null){
+      if(b.hour!=null){const day=hourly[k]=hourly[k]||{};day[b.hour]=Math.max(day[b.hour]||0,b.stepsHour)}
+      else daily[k]=Math.max(daily[k]||0,b.stepsHour);
+      delete b.stepsHour;
+    }
+    if(b.steps!=null){daily[k]=Math.max(daily[k]||0,b.steps);delete b.steps}
   }
-  Object.entries(hourly).forEach(([k,hrs])=>blocks.push({date:k,steps:Math.round(Object.values(hrs).reduce((a,v)=>a+v,0))}));
+  new Set([...Object.keys(hourly),...Object.keys(daily)]).forEach(k=>{
+    const v=hourly[k]?Object.values(hourly[k]).reduce((a,x)=>a+x,0):daily[k];
+    blocks.push({date:k,steps:Math.round(v)});
+  });
   for(const b of blocks){
     if(b.badDate){importText.bad.push(b.badDate);continue}
     const k=b.date||todayKey(); const vals={};
@@ -1377,7 +1386,7 @@ function importText(text){
 function doImport(text){
   const done=importText(text);
   const bad=importText.bad||[];
-  const noHourMsg=importText.noHour?`${importText.noHour} Stundenwerte ohne Uhrzeit wurden ignoriert. Schalte im Kurzbefehl beim Startdatum „ISO 8601-Zeit“ ein.`:'';
+  const noHourMsg='';
   if(bad.length&&!done.length){const c=stacks.sync[0];c.msg=null;c.err=`Das Datum wurde nicht erkannt: „${esc(bad[0])}“. Bitte schick diesen Text an Claude oder stell im Kurzbefehl beim Startdatum das Format „ISO 8601“ ein.`;tab='sync';stacks.sync=[c];render();return}
   if(!done.length&&noHourMsg){const c=stacks.sync[0];c.msg=null;c.err=noHourMsg;tab='sync';stacks.sync=[c];render();return}
   if(!done.length){
