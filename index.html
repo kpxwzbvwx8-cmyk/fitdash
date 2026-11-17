@@ -201,8 +201,16 @@ h2{margin-top:14px}
 .bmi i{display:block;height:100%}
 .bmi .z1{width:17.5%;background:var(--warn);opacity:.55}.bmi .z2{width:32.5%;background:var(--good);opacity:.75}.bmi .z3{width:25%;background:var(--warn);opacity:.55}.bmi .z4{width:25%;background:var(--bad);opacity:.6}
 .bmimark{position:absolute;top:0;width:5px;height:20px;border-radius:3px;background:var(--fg);transform:translateX(-50%);box-shadow:0 0 0 2px var(--surface)}
-.nexttr{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:20px;padding:14px 16px;box-shadow:var(--shadow)}
-.nexttr .grow b{display:block;font-size:16px}
+.cardgroup{display:flex;flex-direction:column;border-radius:22px;box-shadow:var(--shadow)}
+.cardgroup .card{border-bottom-left-radius:0;border-bottom-right-radius:0;box-shadow:none}
+.cardgroup .ext{display:flex;align-items:center;gap:12px;background:var(--c-gym-soft);border-radius:0 0 22px 22px;padding:12px 18px 14px;position:relative}
+.cardgroup .ext::before{content:"";position:absolute;left:18px;right:18px;top:0;border-top:1px dashed color-mix(in srgb,var(--c-gym) 35%,transparent)}
+.cardgroup .card.met+.ext::before{border-top-color:transparent}
+.cardgroup .ext .grow{display:flex;flex-direction:column;min-width:0}
+.cardgroup .ext .grow b{font-size:16px;color:var(--fg)}
+.cardgroup .ext .grow .tiny{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.extline{width:4px;align-self:stretch;border-radius:4px;background:var(--c-gym);flex:none}
+.cardgroup .ext .btn.primary{background:var(--c-gym);color:var(--surface)}
 .medals{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
 .medal{flex:none;width:92px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;scroll-snap-align:start;border:0;background:none;color:var(--fg);font:inherit;cursor:pointer;padding:0}
 .medal .disc{width:70px;height:70px;border-radius:50%;display:grid;place-items:center;color:#5a3a00;background:radial-gradient(circle at 32% 28%,#fff6c8 0,#ffd257 32%,#e0a21a 70%,#b9790c 100%);box-shadow:0 0 0 3px #f3c445 inset,0 0 0 2px #fff3 ,0 4px 10px rgba(185,121,12,.35);position:relative}
@@ -275,7 +283,7 @@ h2{margin-top:14px}
 
 <script>
 "use strict";
-const APP_VERSION="2026-11-17.2";
+const APP_VERSION="2026-11-17.3";
 /* ---------- Grunddaten ---------- */
 const ICON={
   steps:'<svg class="i" viewBox="0 0 24 24"><path d="M8 3c1.7 0 3 2 3 4.5S10 12 8 12s-3-2-3-4.5S6.3 3 8 3zM6 14h4l-.5 4a2 2 0 0 1-3 0zM16 7c1.7 0 3 2 3 4.5S18 16 16 16s-3-2-3-4.5S14.3 7 16 7zM14 18h4l-.5 2.5a2 2 0 0 1-3 0z"/></svg>',
@@ -755,14 +763,7 @@ dashboard(){
   if(S.demo) html+=`<div class="banner"><div><b>Beispieldaten</b><br><span class="small">So sieht FitDash nach ein paar Wochen aus.</span></div><button class="btn sm primary" data-a="clearDemo">Löschen und starten</button></div>`;
   html+=`<div class="syncline"><span>${S.lastSync?'Zuletzt synchronisiert: '+new Date(S.lastSync).toLocaleString('de-DE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'Noch nicht synchronisiert'}</span><button class="link" data-a="tab" data-t="sync">Jetzt synchronisieren</button></div>`;
   if(backupDue()) html+=`<div class="banner" style="background:var(--surface-2)"><div><b>Backup fällig</b><br><span class="small">${S.lastBackup?'Letztes Backup: '+new Date(S.lastBackup).toLocaleDateString('de-DE',{day:'numeric',month:'long'}):'Du hast noch kein Backup gemacht.'}</span></div><button class="btn sm primary" data-a="backupShare">Jetzt sichern</button></div>`;
-  html+='<div class="cards">'+S.settings.dashboard.map(k=>card(k,tk,d)).join('')+'</div>';
-  if(S.settings.dashboard.includes('workout')){const n=nextTraining();if(n){
-    let title,sub,tpl=null;
-    if(n.doneToday.length){title='Heute erledigt: '+esc(n.doneToday[0].title);sub='Als Nächstes: '+esc(n.next.name);}
-    else if(n.today){title=esc(n.today.name);sub='Heute laut Plan';tpl=n.today}
-    else if(n.dayPlan){title='Heute Ruhetag';sub='Als Nächstes: '+esc(n.next.name)}
-    else{title=esc(n.next.name);sub='Als Nächstes in deinem Plan';tpl=n.next}
-    html+=`<div class="nexttr"><span class="ico ico-workout">${ICON.workout}</span><span class="grow"><span class="muted tiny">${sub}</span><b>${title}</b></span>${tpl?`<button class="btn sm primary" data-a="startSession" data-id="${tpl.id}">Starten</button>`:''}</div>`}}
+  html+='<div class="cards">'+S.settings.dashboard.map(k=>k==='workout'?workoutGroup(tk,d):card(k,tk,d)).join('')+'</div>';
   const rec=allRecords().events.slice(-12).reverse();
   if(rec.length) html+=`<h2>Bestleistungen</h2><div class="medals" role="list">${rec.map(r=>`<button class="medal" role="listitem" data-a="push" data-v="records" aria-label="Bestleistung ${esc(r.name)} am ${fmtDay(r.date)}"><span class="disc">${ICON.workout}</span><span class="nm">${esc(r.name)}</span><span class="dt">${fmt1(r.w)} kg × ${r.r} · ${parseYmd(r.date).toLocaleDateString('de-DE',{day:'numeric',month:'short'})}</span></button>`).join('')}</div>`;
   if(!S.settings.dashboard.length) html+='<p class="muted">Keine Ziele ausgewählt.</p>';
@@ -1222,6 +1223,20 @@ gewicht: [gewicht]</pre>
     <p class="muted small">Fehlt ein Wert in Health, bleibt die Zeile leer und zählt als 0. Synchronisiere am besten abends, dann ist der Tag vollständig. Ein früherer Tag wird ersetzt, wenn du dessen Datum erneut einfügst.</p>`;
 }
 
+// Krafttraining-Kachel mit "ausgeklapptem" Bereich für das nächste Training
+function workoutGroup(tk,d){
+  const n=nextTraining(),c=card('workout',tk,d);if(!n)return c;
+  let title,sub,tpl=null,alt=null;
+  if(n.doneToday.length){title='Heute erledigt: '+esc(n.doneToday[0].title);sub='Als Nächstes: '+esc(n.next.name);alt=n.next}
+  else if(n.today){title=esc(n.today.name);sub='Heute laut Plan';tpl=n.today}
+  else if(n.dayPlan){title='Heute Ruhetag';sub='Als Nächstes: '+esc(n.next.name);alt=n.next}
+  else{title=esc(n.next.name);sub='Als Nächstes in deinem Plan';tpl=n.next}
+  const ex=(tpl||alt).exercises.slice(0,4).map(e=>esc(e.name)).join(' · ')+((tpl||alt).exercises.length>4?' …':'');
+  return `<div class="cardgroup">${c}<div class="ext" role="group" aria-label="Nächstes Training">
+    <span class="extline" aria-hidden="true"></span>
+    <span class="grow"><span class="muted tiny">${sub}</span><b>${title}</b>${tpl?`<span class="muted tiny">${ex}</span>`:''}</span>
+    ${tpl?`<button class="btn sm primary" data-a="startSession" data-id="${tpl.id}">Starten</button>`:alt?`<button class="btn sm" data-a="startSession" data-id="${alt.id}">Trotzdem starten</button>`:''}</div></div>`;
+}
 function card(k,tk,d){
   let val,det,p,st,extra='';
   if(k==='steps'){const g=S.settings.stepGoal;val=fmtInt(d.steps);det=`von ${fmtInt(g)} Schritten`;p=(d.steps||0)/g;st=stepsStatus(tk);
