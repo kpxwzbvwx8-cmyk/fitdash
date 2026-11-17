@@ -298,6 +298,19 @@ function parseNum(s){
 /* ---------- Speicher ---------- */
 const MEASURES_DEFAULT=['Hals','Brust','Taille','Bauch','Hüfte','Oberarm','Oberschenkel','Wade','Körperfett'];
 const mUnit=n=>/fett/i.test(n)?'%':'cm';
+// Anleitung zum Anlegen des Maßbands, damit immer an derselben Stelle gemessen wird
+const MEASURE_HOWTO={
+  'Hals':'Knapp unterhalb des Kehlkopfs. Das Band vorne leicht nach unten neigen, Kopf gerade, Blick nach vorn.',
+  'Brust':'Auf Höhe der Brustwarzen, unter den Achseln durch. Arme locker hängen lassen, normal ausatmen.',
+  'Taille':'An der schmalsten Stelle zwischen unterster Rippe und Beckenknochen, meist ca. 2–3 cm über dem Bauchnabel. Nach normalem Ausatmen, Bauch nicht einziehen.',
+  'Bauch':'Genau auf Höhe des Bauchnabels. Entspannt stehen, nach normalem Ausatmen, Bauch nicht einziehen.',
+  'Hüfte':'An der breitesten Stelle des Gesäßes. Füße zusammen, Gewicht auf beiden Beinen.',
+  'Oberarm':'Rechter Arm, in der Mitte zwischen Schulter und Ellenbogen. Arm locker hängen lassen, nicht anspannen.',
+  'Oberschenkel':'Rechtes Bein, an der dicksten Stelle, ca. eine Handbreit unter dem Schritt. Stehend, Gewicht auf beiden Beinen.',
+  'Wade':'Rechtes Bein, an der dicksten Stelle der Wade. Stehend, Gewicht auf beiden Beinen.',
+  'Körperfett':'Kein Maßband: Wert von Körperfettwaage oder Messung eintragen. Immer gleiche Tageszeit, z. B. morgens nüchtern.'
+};
+const howto=n=>MEASURE_HOWTO[n]||'Eigenes Maß: Merk dir die Stelle genau (z. B. Abstand zu einem Knochen) und miss immer gleich.';
 function defaults(){return{settings:{dashboard:['steps','nutrition','workout'],stepGoal:10000,stepWeekAvg:10000,nutrition:{},weekly:4,shortcut:'FitDash Sync',bmr:null,theme:'system',proteinPerKg:null,measures:[...MEASURES_DEFAULT]},days:{},body:{},templates:[],sessions:[],demo:false,lastSync:null,recapSeen:null,profile:{name:'',sex:null,height:null,birth:null,targetWeight:null,goalStart:null,pace:0.5},lastBackup:null}}
 // Wiederholungen als Bereich, z. B. 6–10
 function repRange(e){if(!e)return '';if(e.repsMin!=null)return e.repsMin===e.repsMax?String(e.repsMin):`${e.repsMin}–${e.repsMax}`;return e.reps!=null?String(e.reps):''}
@@ -985,9 +998,17 @@ stats(c){
     const m=c.m,u=mUnit(m||''),lower=/taille|bauch|hüfte|fett/i.test(m||'');
     const pts=m?series(bodyRows.filter(k=>S.body[k][m]!=null).map(k=>({k,v:S.body[k][m]})),c.per):[];
     html+=`<div class="chips">${ms.map(x=>`<button class="${x===m?'on':''}" data-a="pickM" data-m="${esc(x)}">${esc(x)}</button>`).join('')}</div>${perSel}
-      ${m?`<div class="panel chart"><b>${esc(m)}</b>${trendKpis(pts,u,lower)}${lineChart(pts,u)}</div>`:''}
+      ${m?`<div class="panel chart"><b>${esc(m)}</b>${trendKpis(pts,u,lower)}${lineChart(pts,u)}
+        <div class="fc"><span class="tiny"><b>So misst du ${esc(m)}</b></span><span class="small">${esc(howto(m))}</span></div></div>`:''}
+      <details><summary>Grundregeln fürs Messen</summary><ul class="steps-guide small" style="padding-left:18px;margin:0">
+        <li>Morgens messen, nach dem Toilettengang und vor dem Essen und Training.</li>
+        <li>Ohne Kleidung oder in dünner Unterwäsche, vor einem Spiegel.</li>
+        <li>Band waagerecht anlegen, es liegt an, schneidet aber nicht ein.</li>
+        <li>Bei Armen und Beinen immer dieselbe Seite messen, am besten rechts.</li>
+        <li>Jedes Maß zweimal messen und den Mittelwert eintragen.</li>
+        <li>Alle 1–2 Wochen messen reicht. Tägliche Werte schwanken zu stark.</li></ul></details>
       <h2>Maße eintragen</h2><div class="panel"><label class="field" for="mDate">Datum<input id="mDate" type="date" value="${todayKey()}"></label>
-      <div class="minmax" style="grid-template-columns:1fr 1fr">${ms.map((x,i)=>`<label class="field" for="m-${i}">${esc(x)} (${mUnit(x)})<input id="m-${i}" type="text" inputmode="decimal"></label>`).join('')}</div>
+      ${ms.map((x,i)=>`<label class="field" for="m-${i}"><span><b style="color:var(--fg)">${esc(x)}</b> (${mUnit(x)})</span><span class="tiny">${esc(howto(x))}</span><input id="m-${i}" type="text" inputmode="decimal" placeholder="${latestMeasure(x)?fmtRaw(latestMeasure(x).v):mUnit(x)}"></label>`).join('')}
       <button class="btn primary" data-a="saveMeasures">Speichern</button><span class="muted tiny">Leere Felder werden nicht überschrieben. Weitere Maße legst du unter „Mehr“ an.</span></div>
       <h2>Einträge</h2><div class="list">${bodyRows.filter(k=>ms.some(x=>S.body[k][x]!=null)).slice(0,15).map(k=>`<div><span class="grow">${fmtDay(k)}<br><span class="muted tiny">${ms.filter(x=>S.body[k][x]!=null).map(x=>`${esc(x)} ${fmt1(S.body[k][x])}`).join(' · ')}</span></span><button class="xbtn" data-a="delBody" data-k="${k}" data-f="measures" aria-label="Maße löschen">×</button></div>`).join('')||'<div class="muted">Noch keine Einträge.</div>'}</div>`;
   }else{
