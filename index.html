@@ -22,7 +22,7 @@
   --bg:#f2f4f7; --surface:#ffffff; --surface-2:#e8ecf2; --fg:#131923; --muted:#5b6678; --line:#d6dce5;
   --accent:#2c56cc; --accent-fg:#ffffff; --accent-soft:#dfe6fa;
   --good:#18924d; --good-soft:#d9f1e3; --bad:#cf3b3b; --warn:#d07c12; --nodata:#c2c9d4;
-  --c-steps:#2c56cc; --c-steps-soft:#e3e9fb; --c-food:#0e8a7d; --c-food-soft:#d6f0ec; --c-gym:#7a4fd6; --c-gym-soft:#ece5fb;
+  --c-steps:#2c56cc; --c-steps-soft:#e3e9fb; --c-food:#0e8a7d; --c-food-soft:#d6f0ec; --c-gym:#7a4fd6; --c-gym-soft:#ece5fb; --c-body:#c2410c; --c-body-soft:#fde8dc;
   --shadow:0 1px 2px rgba(16,24,40,.05),0 6px 16px rgba(16,24,40,.06); --tabbar:rgba(255,255,255,.84); --good-card:#18924d;
   --font-display:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;
   --font-body:"Inter",ui-sans-serif,system-ui,-apple-system,sans-serif;
@@ -32,13 +32,13 @@
   --bg:#0d1117; --surface:#161c25; --surface-2:#212a36; --fg:#e7ebf1; --muted:#95a1b3; --line:#2a3340;
   --accent:#7495ff; --accent-fg:#0d1117; --accent-soft:#1d2946;
   --good:#2bb366; --good-soft:#163524; --bad:#f06262; --warn:#f2a142; --nodata:#3a4351;
-  --c-steps:#7f9dff; --c-steps-soft:#1d2946; --c-food:#3cc4b3; --c-food-soft:#12302d; --c-gym:#ab8dff; --c-gym-soft:#29213f;
+  --c-steps:#7f9dff; --c-steps-soft:#1d2946; --c-food:#3cc4b3; --c-food-soft:#12302d; --c-gym:#ab8dff; --c-gym-soft:#29213f; --c-body:#ff9a62; --c-body-soft:#3a2418;
   --shadow:0 0 0 1px #1f2732; --tabbar:rgba(22,28,37,.86); --good-card:#1a7d47; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0d1117; --surface:#161c25; --surface-2:#212a36; --fg:#e7ebf1; --muted:#95a1b3; --line:#2a3340;
   --accent:#7495ff; --accent-fg:#0d1117; --accent-soft:#1d2946;
   --good:#2bb366; --good-soft:#163524; --bad:#f06262; --warn:#f2a142; --nodata:#3a4351;
-  --c-steps:#7f9dff; --c-steps-soft:#1d2946; --c-food:#3cc4b3; --c-food-soft:#12302d; --c-gym:#ab8dff; --c-gym-soft:#29213f;
+  --c-steps:#7f9dff; --c-steps-soft:#1d2946; --c-food:#3cc4b3; --c-food-soft:#12302d; --c-gym:#ab8dff; --c-gym-soft:#29213f; --c-body:#ff9a62; --c-body-soft:#3a2418;
   --shadow:0 0 0 1px #1f2732; --tabbar:rgba(22,28,37,.86); --good-card:#1a7d47; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
@@ -232,6 +232,25 @@ h2{margin-top:14px}
 .fatbox .grow{display:flex;flex-direction:column}
 .fatico{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:18px;background:var(--good);color:#fff;flex:none}
 .fatbox.gain .fatico{background:var(--bad)}
+.ico-body{background:var(--c-body-soft);color:var(--c-body)}
+.bar i.k-body{background:var(--c-body)}
+.mtab{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.mtab td,.mtab th{padding-left:3px!important;padding-right:3px!important}
+.mtab td .tiny{font-size:11px}
+.mtab th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
+.mtab td{padding:9px 4px;border-bottom:1px solid var(--line);text-align:right;vertical-align:middle}
+.mtab th:first-child,.mtab td:first-child{text-align:left}
+.mtab tr.sel td{background:var(--accent-soft)}
+.mtab tr{cursor:pointer}
+.spark polyline{fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.spark.pos polyline{stroke:var(--good)}.spark.neg polyline{stroke:var(--bad)}
+.mcard{display:flex;gap:6px;flex-wrap:wrap}
+.mchip{display:inline-flex;gap:4px;align-items:baseline;background:var(--surface-2);border-radius:99px;padding:3px 10px;font-size:13px}
+.card.met .mchip{background:rgba(255,255,255,.2)}
+.card .mchip .pos{color:var(--good)}.card .mchip .neg{color:var(--bad)}
+.card.met .mchip .pos,.card.met .mchip .neg{color:#fff}
+.goalrow{display:grid;grid-template-columns:1fr auto 26px;gap:4px 10px;align-items:center}
+.goalrow .bar{grid-column:1/3}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -260,9 +279,10 @@ h2{margin-top:14px}
 const ICON={
   steps:'<svg class="i" viewBox="0 0 24 24"><path d="M8 3c1.7 0 3 2 3 4.5S10 12 8 12s-3-2-3-4.5S6.3 3 8 3zM6 14h4l-.5 4a2 2 0 0 1-3 0zM16 7c1.7 0 3 2 3 4.5S18 16 16 16s-3-2-3-4.5S14.3 7 16 7zM14 18h4l-.5 2.5a2 2 0 0 1-3 0z"/></svg>',
   nutrition:'<svg class="i" viewBox="0 0 24 24"><path d="M7 3v8M4 3v5a3 3 0 0 0 6 0V3M7 11v10M17 3c-2 0-3 3-3 7h3v11"/></svg>',
-  workout:'<svg class="i" viewBox="0 0 24 24"><path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/></svg>'
+  workout:'<svg class="i" viewBox="0 0 24 24"><path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/></svg>',
+  body:'<svg class="i" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="5"/><path d="M8 7v3M12 7v4M16 7v3"/><circle cx="12" cy="13.5" r="0.6"/></svg>'
 };
-const GOALS={steps:{t:'Schritte'},nutrition:{t:'Ernährung'},workout:{t:'Krafttraining'}};
+const GOALS={steps:{t:'Schritte'},nutrition:{t:'Ernährung'},workout:{t:'Krafttraining'},body:{t:'Körpermaße'}};
 const NUTR=[['kcal','Kalorien','kcal'],['protein','Protein','g'],['fat','Fett','g'],['carbs','Kohlenhydrate','g'],['fiber','Ballaststoffe','g']];
 const STATUS={met:'erreicht',missed:'verfehlt',pending:'läuft noch',nodata:'keine Daten'};
 const KEY='fitdash.v1';
@@ -317,7 +337,7 @@ const MEASURE_HOWTO={
   'Körperfett':'Kein Maßband: Wert von Körperfettwaage oder Messung eintragen. Immer gleiche Tageszeit, z. B. morgens nüchtern.'
 };
 const howto=n=>MEASURE_HOWTO[n]||'Eigenes Maß: Merk dir die Stelle genau (z. B. Abstand zu einem Knochen) und miss immer gleich.';
-function defaults(){return{settings:{dashboard:['steps','nutrition','workout'],stepGoal:10000,stepWeekAvg:10000,nutrition:{},weekly:4,shortcut:'FitDash Sync',bmr:null,theme:'system',proteinPerKg:null,measures:[...MEASURES_DEFAULT]},days:{},body:{},templates:[],sessions:[],demo:false,lastSync:null,recapSeen:null,profile:{name:'',sex:null,height:null,birth:null,targetWeight:null,goalStart:null,pace:0.5},lastBackup:null}}
+function defaults(){return{settings:{dashboard:['steps','nutrition','workout','body'],measureGoals:{},stepGoal:10000,stepWeekAvg:10000,nutrition:{},weekly:4,shortcut:'FitDash Sync',bmr:null,theme:'system',proteinPerKg:null,measures:[...MEASURES_DEFAULT]},days:{},body:{},templates:[],sessions:[],demo:false,lastSync:null,recapSeen:null,profile:{name:'',sex:null,height:null,birth:null,targetWeight:null,goalStart:null,pace:0.5},lastBackup:null}}
 // Wiederholungen als Bereich, z. B. 6–10
 function repRange(e){if(!e)return '';if(e.repsMin!=null)return e.repsMin===e.repsMax?String(e.repsMin):`${e.repsMin}–${e.repsMax}`;return e.reps!=null?String(e.reps):''}
 function parseRange(v){const m=String(v??'').match(/(\d+)\s*(?:[-–—\/]|bis|\s)\s*(\d+)/i);
@@ -343,7 +363,7 @@ function parsePlan(text){
 function targetFor(d,name){const t=d.templateId&&S.templates.find(x=>x.id===d.templateId);return t&&t.exercises.find(e=>norm(e.name)===norm(name))}
 function load(){
   try{const raw=localStorage.getItem(KEY);
-    if(raw){const s=Object.assign(defaults(),JSON.parse(raw));s.settings=Object.assign(defaults().settings,s.settings);s.profile=Object.assign(defaults().profile,s.profile||{});migrateTemplates(s);if(!s.settings.halsAdded){if(!s.settings.measures.includes('Hals'))s.settings.measures.unshift('Hals');s.settings.halsAdded=true}return s}}catch(e){}
+    if(raw){const s=Object.assign(defaults(),JSON.parse(raw));s.settings=Object.assign(defaults().settings,s.settings);s.profile=Object.assign(defaults().profile,s.profile||{});migrateTemplates(s);if(!s.settings.bodyCardAdded){if(!s.settings.dashboard.includes('body'))s.settings.dashboard.push('body');s.settings.bodyCardAdded=true}s.settings.measureGoals=s.settings.measureGoals||{};if(!s.settings.halsAdded){if(!s.settings.measures.includes('Hals'))s.settings.measures.unshift('Hals');s.settings.halsAdded=true}return s}}catch(e){}
   const d=defaults();seedDemo(d);return d;
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
@@ -684,6 +704,25 @@ async function shareBackup(){
   try{await navigator.clipboard.writeText(txt);S.lastBackup=Date.now();save();toast('Backup in die Zwischenablage kopiert, z. B. in eine Notiz einfügen');render()}catch(e){toast('Backup über Mehr → Backup kopieren sichern')}
 }
 
+/* ---------- Körpermaße: Verlauf, Bezugswerte, optionale Ziele ---------- */
+const LOWER_BETTER=/taille|bauch|hüfte|fett/i,HIGHER_BETTER=/oberarm|brust|wade|schulter/i;
+function mEntries(n){return Object.keys(S.body).filter(k=>S.body[k][n]!=null).sort().map(k=>({k,v:S.body[k][n],t:(S.body[k].mt||{})[n]||''}))}
+// gewünschte Richtung: Ziel geht vor, sonst übliche Richtung je Maß, sonst neutral
+function mDir(n){const g=(S.settings.measureGoals||{})[n],e=mEntries(n);
+  if(g!=null&&e.length)return Math.sign(g-e[0].v)||Math.sign(g-e[e.length-1].v);
+  return LOWER_BETTER.test(n)?-1:HIGHER_BETTER.test(n)?1:0}
+const dCls=(d,dir)=>d==null||Math.abs(d)<0.05||!dir?'':(d*dir>0?'pos':'neg');
+const dTxt=d=>d==null?'–':(d>0?'+':d<0?'−':'±')+fmt1(Math.abs(d));
+function mGoalProgress(n){const g=(S.settings.measureGoals||{})[n],e=mEntries(n);if(g==null||!e.length)return null;
+  const f=e[0].v,l=e[e.length-1].v,total=g-f;const met=total===0?true:(total<0?l<=g:l>=g);
+  return{goal:g,cur:l,first:f,p:total?Math.max(0,Math.min(1,(l-f)/total)):1,met,left:g-l}}
+function spark(vals,dir){if(vals.length<2)return '';const W=40,H=20,mn=Math.min(...vals),mx=Math.max(...vals),r=mx-mn||1;
+  const pts=vals.map((v,i)=>`${(i/(vals.length-1)*(W-4)+2).toFixed(1)},${(H-3-(v-mn)/r*(H-6)).toFixed(1)}`).join(' ');
+  const d=vals[vals.length-1]-vals[0],c=dCls(d,dir);
+  return `<svg class="spark ${c}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true"><polyline points="${pts}"/></svg>`}
+function lastBodyEntry(){const ks=Object.keys(S.body).filter(k=>S.settings.measures.some(m=>S.body[k][m]!=null)).sort();return ks.length?ks[ks.length-1]:null}
+function nowLocal(){const d=new Date();return `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`}
+
 /* ---------- Navigation ---------- */
 let tab='home';
 const stacks={home:[{v:'dashboard'}],cal:[{v:'calendar',month:null}],stats:[{v:'stats',seg:'weight',per:'week'}],sync:[{v:'sync'}],more:[{v:'more'}]};
@@ -883,7 +922,7 @@ calendar(c){
   }
   const html=`<div class="cal-head"><button class="btn sm" data-a="month" data-d="-1" aria-label="Vormonat">‹</button><b>${m.toLocaleDateString('de-DE',{month:'long',year:'numeric'})}</b><button class="btn sm" data-a="month" data-d="1" aria-label="Nächster Monat">›</button></div>
     <div class="calgrid">${grid}</div>
-    <div class="panel"><span class="small"><b>Punkte unter jedem Tag, von links:</b> ${en.filter(k=>k!=='workout').map(k=>GOALS[k].t).concat(showW?['Training gebucht']:[]).join(' · ')}</span>
+    <div class="panel"><span class="small"><b>Punkte unter jedem Tag, von links:</b> ${en.filter(k=>k==='steps'||k==='nutrition').map(k=>GOALS[k].t).concat(showW?['Training gebucht']:[]).join(' · ')}</span>
     <div class="legend"><span><i class="dot met"></i>erreicht</span><span><i class="dot missed"></i>verfehlt</span><span><i class="dot pending"></i>läuft noch</span><span><i class="dot nodata"></i>keine Daten</span><span><i class="dot booked"></i>Training</span></div>
     <span class="muted tiny">Spalte „Wo“: Wochenbewertung in Prozent und gebuchte Trainings. Antippen öffnet den Wochenrückblick.</span></div>
     <h2>Wochen in diesem Monat</h2><div class="list">${weeks.length?[...weeks].reverse().map(weekRow).join(''):'<div class="muted">Noch keine Wochen.</div>'}</div>
@@ -913,6 +952,46 @@ planImport(c){
     <button class="btn" data-a="planPreview">Vorschau</button></div>
     ${c.preview?`<h2>Vorschau</h2>${c.preview.length?c.preview.map(t=>`<div class="panel"><b>${esc(t.name)}</b><span class="small muted">${t.exercises.map(e=>`${esc(e.name)} · ${e.sets} × ${repRange(e)}`).join('<br>')}</span></div>`).join('')+`<button class="btn primary wide" data-a="planSave">${c.preview.length} Vorlagen speichern</button>`:'<p class="muted">Im Text wurde kein Plan erkannt.</p>'}`:''}`;
   return{title:'Plan einfügen',html};
+},
+body(c){
+  const ms=S.settings.measures,goals=S.settings.measureGoals||{},lk=lastBodyEntry();
+  if(!ms.includes(c.m))c.m=ms.find(m=>mEntries(m).length)||ms[0];
+  const rows=ms.map(m=>{const e=mEntries(m),l=e[e.length-1],pr=e[e.length-2],f=e[0];return{m,e,l,dl:l&&pr?l.v-pr.v:null,df:l&&f&&e.length>1?l.v-f.v:null,dir:mDir(m)}});
+  const sel=rows.find(r=>r.m===c.m),u=mUnit(c.m||'');
+  const pts=sel?sel.e.slice(-24).map(x=>({label:parseYmd(x.k).toLocaleDateString('de-DE',{day:'numeric',month:'short'}),v:x.v})):[];
+  const gl=Object.keys(goals).filter(m=>ms.includes(m));
+  const top=`<div class="panel"><div class="rowflex"><b>Übersicht</b><span class="muted small">${lk?'Letzte Messung: '+fmtDay(lk):'Noch keine Messung'}</span></div>
+      <div style="overflow-x:auto"><table class="mtab"><thead><tr><th>Maß</th><th>Aktuell</th><th>zur letzten</th><th>seit Start</th><th></th></tr></thead><tbody>
+      ${rows.filter(r=>r.e.length).map(r=>`<tr class="${r.m===c.m?'sel':''}" data-a="bmSel" data-m="${esc(r.m)}"><td><b>${esc(r.m)}</b>${goals[r.m]!=null?`<br><span class="tiny muted">Ziel ${fmt1(goals[r.m])}</span>`:''}</td><td><b>${fmt1(r.l.v)}</b> <span class="tiny muted">${mUnit(r.m)}</span></td>
+        <td class="${dCls(r.dl,r.dir)}">${dTxt(r.dl)}</td><td class="${dCls(r.df,r.dir)}">${dTxt(r.df)}</td><td>${spark(r.e.slice(-10).map(x=>x.v),r.dir)}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">Trag unten deine erste Messung ein.</td></tr>'}</tbody></table></div>
+      <span class="muted tiny"><span class="pos">Grün</span> = in die gewünschte Richtung, <span class="neg">rot</span> = entgegen. Mit Ziel gilt die Richtung zum Ziel, sonst: Taille, Bauch, Hüfte, Körperfett sinken; Brust, Oberarm, Wade steigen. Zeile antippen für den Verlauf.</span></div>
+    ${sel&&sel.e.length?`<div class="panel chart"><div class="rowflex"><b>${esc(c.m)}</b><span class="muted small">${sel.e.length} Messung${sel.e.length===1?'':'en'}</span></div>
+      <div class="kpis"><div class="kpi"><b>${fmt1(sel.l.v)}</b><span>${u} · ${fmtDay(sel.l.k)}${sel.l.t?' '+sel.l.t:''}</span></div>
+        <div class="kpi"><b class="${dCls(sel.dl,sel.dir)}">${dTxt(sel.dl)}</b><span>${u} seit letzter Messung</span></div>
+        <div class="kpi"><b class="${dCls(sel.df,sel.dir)}">${dTxt(sel.df)}</b><span>${u} seit ${fmtDay(sel.e[0].k)}</span></div></div>
+      ${lineChart(pts,u)}
+      <div class="fc"><span class="tiny"><b>So misst du ${esc(c.m)}</b></span><span class="small">${esc(howto(c.m))}</span></div></div>`:''}
+    <h2>Ziele <span class="muted" style="text-transform:none;letter-spacing:0">(freiwillig)</span></h2><div class="panel">
+      ${gl.map(m=>{const g=mGoalProgress(m);return `<div class="goalrow"><span><b>${esc(m)}</b> <span class="muted small">Ziel ${fmt1(goals[m])} ${mUnit(m)}</span></span>
+        <span class="small ${g&&g.met?'pos':''}">${g?(g.met?'erreicht':`noch ${fmt1(Math.abs(g.left))} ${mUnit(m)}`):'noch keine Messung'}</span>
+        <button class="xbtn" data-a="bmGoalDel" data-m="${esc(m)}" aria-label="Ziel ${esc(m)} entfernen">×</button>${g?bar(g.p,g.met?'good':'k-body'):''}</div>`}).join('')}
+      ${c.addGoal?`<div class="minmax" style="grid-template-columns:1fr 1fr"><label class="field" for="bgM">Maß<select id="bgM" style="font:inherit;color:var(--fg);background:var(--surface-2);border:0;border-radius:10px;padding:9px 10px">${ms.filter(m=>goals[m]==null).map(m=>`<option ${m===c.m?'selected':''}>${esc(m)}</option>`).join('')}</select></label>
+          <label class="field" for="bgV">Zielwert<input id="bgV" type="text" inputmode="decimal" placeholder="z. B. 85"></label></div>
+        <div class="rowflex"><button class="btn sm" data-a="bmGoalCancel">Abbrechen</button><button class="btn sm primary" data-a="bmGoalSave">Ziel speichern</button></div>`
+        :`<button class="btn sm" data-a="bmGoalAdd">+ Ziel hinzufügen</button>${gl.length?'':'<span class="muted tiny">Ziele sind optional. Der Verlauf funktioniert auch ohne.</span>'}`}</div>`;
+  const log=Object.keys(S.body).filter(k=>ms.some(m=>S.body[k][m]!=null)).sort().reverse();
+  const html=`<h2>Neue Messung</h2><div class="panel"><label class="field" for="bWhen">Datum und Uhrzeit<input id="bWhen" type="datetime-local" max="${nowLocal()}" value="${nowLocal()}"></label>
+      ${ms.map((x,i)=>`<label class="field" for="bm-${i}"><span><b style="color:var(--fg)">${esc(x)}</b> (${mUnit(x)})</span><span class="tiny">${esc(howto(x))}</span><input id="bm-${i}" type="text" inputmode="decimal" placeholder="${mEntries(x).length?'zuletzt '+fmtRaw(mEntries(x).slice(-1)[0].v):mUnit(x)}"></label>`).join('')}
+      <button class="btn primary" data-a="saveBody">Messung speichern</button><span class="muted tiny">Nur ausgefüllte Felder werden gespeichert.</span></div>
+    <details><summary>Grundregeln fürs Messen</summary><ul class="steps-guide small" style="padding-left:18px;margin:0">
+      <li>Morgens messen, nach dem Toilettengang und vor dem Essen und Training.</li><li>Ohne Kleidung oder in dünner Unterwäsche, vor einem Spiegel.</li>
+      <li>Band waagerecht anlegen, es liegt an, schneidet aber nicht ein.</li><li>Bei Armen und Beinen immer dieselbe Seite messen, am besten rechts.</li>
+      <li>Jedes Maß zweimal messen und den Mittelwert eintragen.</li><li>Alle 1–2 Wochen messen reicht. Tägliche Werte schwanken zu stark.</li></ul></details>
+    <h2>Protokoll</h2><div class="list">${log.length?log.slice(0,40).map(k=>{const b=S.body[k],mt=b.mt||{},times=[...new Set(ms.filter(m=>b[m]!=null).map(m=>mt[m]).filter(Boolean))];
+      return `<div><span class="grow"><b>${fmtDayLong(k)}</b>${times.length?` <span class="muted small">· ${times.join(', ')} Uhr</span>`:''}<br><span class="muted tiny">${ms.filter(m=>b[m]!=null).map(m=>`${esc(m)} ${fmt1(b[m])}`).join(' · ')}</span></span><button class="xbtn" data-a="delBody" data-k="${k}" data-f="measures" aria-label="Messung löschen">×</button></div>`}).join(''):'<div class="muted">Noch keine Messungen.</div>'}</div>
+    <h2>Maße verwalten</h2><div class="list">${ms.map(m=>`<div><span class="grow">${esc(m)} <span class="muted">(${mUnit(m)})</span></span><button class="xbtn" data-a="rmMeasure" data-m="${esc(m)}" aria-label="${esc(m)} entfernen">×</button></div>`).join('')}
+      <div><input id="newMeasure" type="text" placeholder="Neues Maß, z. B. Unterarm" aria-label="Neues Maß"><button class="btn sm" data-a="addMeasure">Hinzufügen</button></div></div>`;
+  return{title:'Körpermaße',top,html};
 },
 weekHistory(){
   const ws=allWeeks().map(w=>weekSummary(w)),scored=ws.filter(w=>w.score!=null);
@@ -996,7 +1075,7 @@ profile(c){
     ${(()=>{const t=weightTrend(60);return t.length>=2?`<div class="panel"><div class="rowflex"><span>Trendgewicht <span class="muted tiny">(geglättet)</span></span><b class="num">${fmt1(t[t.length-1].ema)} kg</b></div><span class="muted tiny">Tägliche Schwankungen durch Wasser und Essen werden herausgerechnet. Den Verlauf siehst du unter Statistik → Gewicht.</span></div>`:''})()}
     <h2>Zielgewicht</h2>${goal||'<div class="panel muted small">Trag unten ein Zielgewicht ein, dann berechne ich, wann du es erreichst.</div>'}
     <h2>Körperfett</h2><div class="list">${bf.length?bf.map((x,i)=>`<div><span class="grow"><b>${x.method}</b>${i===0?' <span class="chip st-met" style="padding:0 6px">Hauptwert</span>':''}<br><span class="muted tiny">${x.note}</span></span><b class="num">${fmt1(x.v)} %</b></div>`).join(''):'<div class="muted">Noch nicht berechenbar.</div>'}
-      ${bfMissing().length?`<div class="small muted">Für die genaue Umfang-Methode fehlt: ${bfMissing().join(', ')}. Umfänge trägst du unter Statistik → Maße ein.</div>`:''}</div>`;
+      ${bfMissing().length?`<div class="small muted">Für die genaue Umfang-Methode fehlt: ${bfMissing().join(', ')}. Umfänge trägst du in der Kachel „Körpermaße“ auf dem Dashboard ein.</div>`:''}</div>`;
   const html=`<div class="list"><button class="rowbtn" data-a="push" data-v="photos"><span class="grow"><b>Fortschrittsfotos</b><br><span class="muted small">${PHOTOS.length?PHOTOS.length+' Fotos · zuletzt '+fmtDay(PHOTOS[0].date):'Fotos mit Datum ablegen und vergleichen'}</span></span><span class="muted">›</span></button></div>
     <h2>Gewicht eintragen</h2><div class="panel"><div class="minmax" style="grid-template-columns:1fr auto"><input id="pfWeight" type="text" inputmode="decimal" placeholder="${w?fmtRaw(w.v):'kg'}" aria-label="Gewicht heute in kg"><button class="btn primary" data-a="pfSaveWeight">Speichern</button></div>
       <span class="muted tiny">Wird für heute gespeichert. Gewicht aus Apple Health (Kurzbefehl) und aus Statistik → Gewicht wird automatisch übernommen.</span></div>
@@ -1010,11 +1089,11 @@ profile(c){
   return{title:'Profil',top,html};
 },
 stats(c){
-  const segs=[['weight','Gewicht'],['body','Maße'],['sport','Kraft']];
+  const segs=[['weight','Gewicht'],['sport','Kraft']];
   let html=`<div class="seg" role="tablist">${segs.map(([k,t])=>`<button class="${c.seg===k?'on':''}" data-a="seg" data-s="${k}">${t}</button>`).join('')}</div>`;
   const perSel=`<div class="seg">${[['week','Wöchentlich'],['month','Monatlich'],['year','Jährlich']].map(([k,t])=>`<button class="${c.per===k?'on':''}" data-a="per" data-p="${k}">${t}</button>`).join('')}</div>`;
   const bodyRows=Object.keys(S.body).sort().reverse();
-  if(!['weight','body','sport'].includes(c.seg))c.seg='weight';
+  if(!['weight','sport'].includes(c.seg))c.seg='weight';
   if(c.seg==='weight'){
     const pts=series(bodyRows.filter(k=>S.body[k].weight).map(k=>({k,v:S.body[k].weight})),c.per);
     html+=`<div class="panel chart"><b>Trend · letzte 120 Tage</b>${trendChart(weightTrend(120))}<span class="muted tiny">Punkte = einzelne Wiegungen, Linie = geglätteter Trend. Der Trend zeigt die echte Entwicklung ohne tägliche Wasserschwankungen.</span></div>`;
@@ -1082,8 +1161,6 @@ more(){
     <h2>Kurzbefehl</h2><div class="panel"><label class="field" for="scname">Name deines Kurzbefehls<input id="scname" type="text" value="${esc(S.settings.shortcut)}" data-in="scname"></label></div>
     <h2>Energieverbrauch</h2><div class="panel"><label class="field" for="bmr">Grundumsatz in kcal pro Tag<input id="bmr" type="text" inputmode="numeric" placeholder="z. B. 1750" value="${S.settings.bmr??''}" data-in="bmr"></label>
       <span class="muted small">Nur nötig, wenn keine Ruheenergie aus Apple Health kommt. Damit wird das Kaloriendefizit berechnet.</span></div>
-    <h2>Körpermaße</h2><div class="list">${S.settings.measures.map(m=>`<div><span class="grow">${esc(m)} <span class="muted">(${mUnit(m)})</span></span><button class="xbtn" data-a="rmMeasure" data-m="${esc(m)}" aria-label="${esc(m)} entfernen">×</button></div>`).join('')}
-      <div><input id="newMeasure" type="text" placeholder="Neues Maß, z. B. Nacken" aria-label="Neues Maß"><button class="btn sm" data-a="addMeasure">Hinzufügen</button></div></div>
     <h2>Datensicherung</h2><div class="panel"><span class="muted small">Deine Daten liegen nur auf diesem iPhone. Kopiere ab und zu ein Backup, zum Beispiel in eine Notiz.</span>
       <button class="btn primary" data-a="backupShare">Backup als Datei sichern</button>
       <span class="muted tiny">${S.lastBackup?'Letztes Backup: '+new Date(S.lastBackup).toLocaleString('de-DE',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}):'Noch kein Backup.'} Speichere die Datei z. B. in „Dateien“ oder iCloud Drive. Fotos sind nicht enthalten.</span>
@@ -1150,10 +1227,19 @@ function card(k,tk,d){
     const tg=effNutrition(),act=NUTR.filter(([n])=>isSet(tg[n])),met=act.filter(([n])=>isMet(tg[n],d[n]||0)).length,ref=tg.kcal?(tg.kcal.max??tg.kcal.min):null;
     val=`${fmtInt(d.kcal)} kcal`;det=act.length?`${met} von ${act.length} Werten im Ziel`:'Keine Zielwerte festgelegt';
     p=ref?(d.kcal||0)/ref:(act.length?met/act.length:0);st=nutrStatus(tk);
+  }else if(k==='body'){
+    const lk=lastBodyEntry(),goals=Object.keys(S.settings.measureGoals||{}).filter(m=>S.settings.measures.includes(m)).map(mGoalProgress).filter(Boolean);
+    if(!lk){val='Noch keine Messung';det='Antippen zum Eintragen';p=null;st='nodata'}
+    else{const days=Math.round((parseYmd(todayKey())-parseYmd(lk))/864e5);
+      val=goals.length?`${goals.filter(g=>g.met).length} / ${goals.length}`:fmtDay(lk);
+      det=goals.length?'Ziele erreicht':(days===0?'heute gemessen':`letzte Messung vor ${days} Tag${days===1?'':'en'}`);
+      p=goals.length?goals.reduce((a,g)=>a+g.p,0)/goals.length:null;st=goals.length&&goals.every(g=>g.met)?'met':'pending';
+      const show=S.settings.measures.filter(m=>m!=='Körperfett'&&mEntries(m).length>1).sort((a,b)=>(LOWER_BETTER.test(b)?1:0)-(LOWER_BETTER.test(a)?1:0)).slice(0,3);
+      if(show.length)extra=`<span class="mcard">${show.map(m=>{const e=mEntries(m),d=e[e.length-1].v-e[0].v;return `<span class="mchip">${esc(m)} <b class="num">${fmt1(e[e.length-1].v)}</b><span class="num ${dCls(d,mDir(m))}">${dTxt(d)}</span></span>`}).join('')}</span>`}
   }else{const c=weekCount(weekStart(new Date())),t=S.settings.weekly;val=`${c} / ${t}`;det='Einheiten diese Woche';p=c/t;st=c>=t?'met':'pending'}
   return `<button class="card ${st==='met'?'met':''} ${st==='missed'?'missed':''}" data-a="push" data-v="${k}">
     <span class="head"><span class="ico ico-${k}">${ICON[k]}</span><span class="grow">${GOALS[k].t}</span>${st==='met'?'<span class="small">Erreicht</span>':''}<span aria-hidden="true">›</span></span>
-    <span class="line2"><span class="val">${val}</span><span class="detail">${det}</span></span>${bar(p,st==='missed'?'bad':'k-'+k)}${extra||''}</button>`;
+    <span class="line2"><span class="val">${val}</span><span class="detail">${det}</span></span>${p==null?'':bar(p,st==='missed'?'bad':'k-'+k)}${extra||''}</button>`;
 }
 
 // Schritte: Wochendurchschnitt (Mo–So)
@@ -1349,6 +1435,15 @@ const A={
   reset(){S._confirmReset=true;render()},resetNo(){delete S._confirmReset;render()},
   resetYes(){S=defaults();save();toast('Alle Daten gelöscht');render()},
   week(el){push({v:'week',k:el.dataset.k})},
+  bmSel(el){cur().m=el.dataset.m;render()},
+  bmGoalAdd(){cur().addGoal=true;render()},bmGoalCancel(){cur().addGoal=false;render()},
+  bmGoalSave(){const m=$('#bgM')&&$('#bgM').value,v=parseNum($('#bgV').value);if(!m||v==null||v<=0){toast('Bitte Maß und Zielwert eingeben');return}
+    S.settings.measureGoals[m]=v;cur().addGoal=false;cur().m=m;save();render();toast('Ziel gespeichert')},
+  bmGoalDel(el){delete S.settings.measureGoals[el.dataset.m];save();render()},
+  saveBody(){const w=($('#bWhen').value||nowLocal()),k=w.slice(0,10),t=w.slice(11,16);if(k>todayKey()){toast('Das Datum liegt in der Zukunft');return}
+    const b=S.body[k]=S.body[k]||{};b.mt=b.mt||{};let n=0;
+    S.settings.measures.forEach((m,i)=>{const v=parseNum($('#bm-'+i).value);if(v!=null&&v>0){b[m]=v;b.mt[m]=t;n++}});
+    if(!n){toast('Bitte mindestens ein Maß eintragen');return}save();render();window.scrollTo(0,0);toast(`${n} Maß${n===1?'':'e'} gespeichert`)},
   backupShare(){shareBackup()},
   pace(el){S.profile.pace=Number(el.dataset.p);save();refreshLive()},
   applyPlan(){const g=goalPlan();if(!g||!g.intake)return;S.settings.nutrition.kcal={min:null,max:Math.round(g.intake/10)*10};
@@ -1376,7 +1471,7 @@ const A={
     S.settings.measures.forEach((m,i)=>{const v=parseNum($('#m-'+i).value);if(v!=null){b[m]=v;n++}});
     if(!n){toast('Bitte mindestens ein Maß eintragen');return}save();render();toast(n+' Maße gespeichert')},
   delBody(el){const b=S.body[el.dataset.k];if(!b)return;
-    if(el.dataset.f==='weight')delete b.weight;else S.settings.measures.forEach(m=>delete b[m]);
+    if(el.dataset.f==='weight')delete b.weight;else{S.settings.measures.forEach(m=>delete b[m]);delete b.mt}
     if(!Object.keys(b).length)delete S.body[el.dataset.k];save();render()},
   addMeasure(){const v=$('#newMeasure').value.trim();if(!v||S.settings.measures.includes(v))return;S.settings.measures.push(v);save();render()},
   rmMeasure(el){S.settings.measures=S.settings.measures.filter(m=>m!==el.dataset.m);save();render();toast('Maß ausgeblendet, Einträge bleiben erhalten')},
