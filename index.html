@@ -95,7 +95,8 @@ label.field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(
 .ring .trk{stroke:var(--good-soft)} .ring .prg{stroke:var(--good);stroke-linecap:round;transition:stroke-dashoffset .4s}
 .chart svg{width:100%;height:auto;display:block}
 .chart text{fill:var(--muted);font-size:10px;font-family:var(--font-body)}
-.chart .b-met{fill:var(--good)} .chart .b-no{fill:var(--accent)} .chart .goal{stroke:var(--bad);stroke-dasharray:4 4;stroke-width:1.2}
+.chart .b-met{fill:var(--good)} .chart .b-no{fill:var(--accent)} .chart .b-off{fill:var(--surface-2)} .chart .goal{stroke:var(--bad);stroke-dasharray:4 4;stroke-width:1.2}
+.chart .avg{stroke:var(--warn);stroke-dasharray:2 3;stroke-width:1.6} .chart text.avg-t{fill:var(--warn)}
 .stepper{display:flex;align-items:center;gap:12px}
 .stepper button{width:40px;height:40px;border-radius:12px;border:0;background:var(--surface-2);color:var(--fg);font-size:22px;cursor:pointer}
 .stepper b{font-family:var(--font-display);font-size:22px;min-width:2ch;text-align:center}
@@ -241,7 +242,7 @@ function parseNum(s){
 /* ---------- Speicher ---------- */
 const MEASURES_DEFAULT=['Brust','Taille','Bauch','Hüfte','Oberarm','Oberschenkel','Wade','Körperfett'];
 const mUnit=n=>/fett/i.test(n)?'%':'cm';
-function defaults(){return{settings:{dashboard:['steps','nutrition','workout'],stepGoal:10000,nutrition:{},weekly:4,shortcut:'FitDash Sync',bmr:null,measures:[...MEASURES_DEFAULT]},days:{},body:{},templates:[],sessions:[],demo:false,lastSync:null,recapSeen:null}}
+function defaults(){return{settings:{dashboard:['steps','nutrition','workout'],stepGoal:10000,stepWeekAvg:10000,nutrition:{},weekly:4,shortcut:'FitDash Sync',bmr:null,measures:[...MEASURES_DEFAULT]},days:{},body:{},templates:[],sessions:[],demo:false,lastSync:null,recapSeen:null}}
 // Wiederholungen als Bereich, z. B. 6–10
 function repRange(e){if(!e)return '';if(e.repsMin!=null)return e.repsMin===e.repsMax?String(e.repsMin):`${e.repsMin}–${e.repsMax}`;return e.reps!=null?String(e.reps):''}
 function parseRange(v){const m=String(v??'').match(/(\d+)\s*(?:[-–—\/]|bis|\s)\s*(\d+)/i);
@@ -358,6 +359,7 @@ function avgWeight(from,to){const v=Object.entries(S.body).filter(([k,b])=>k>=fr
 function weekSummary(ws){
   const tk=todayKey(),keys=Array.from({length:7},(_,i)=>ymd(addDays(ws,i))),past=keys.filter(k=>k<=tk),en=S.settings.dashboard;
   const parts=[];
+  if(en.includes('steps')&&S.settings.stepWeekAvg){const w=weekSteps(ws);if(w.sum>0)parts.push({t:'Schritte Ø',met:Math.round(w.done?w.weekAvg:w.avg),ev:S.settings.stepWeekAvg,r:Math.min((w.done?w.weekAvg:w.avg)/S.settings.stepWeekAvg,1),txt:`Ø ${fmtInt(w.done?w.weekAvg:w.avg)} von ${fmtInt(S.settings.stepWeekAvg)}`})}
   if(en.includes('steps')){const st=past.map(stepsStatus),met=st.filter(x=>x==='met').length,ev=st.filter(x=>x==='met'||x==='missed').length;parts.push({t:'Schritte',met,ev,r:ev?met/ev:null,txt:`${met} von ${ev} Tagen`})}
   if(en.includes('nutrition')){const st=past.map(nutrStatus),met=st.filter(x=>x==='met').length,ev=st.filter(x=>x==='met'||x==='missed').length;parts.push({t:'Ernährung',met,ev,r:ev?met/ev:null,txt:`${met} von ${ev} Tagen`})}
   if(en.includes('workout')){const c=weekCount(ws),t=S.settings.weekly;parts.push({t:'Krafttraining',met:c,ev:t,r:Math.min(c/t,1),txt:`${c} von ${t} Einheiten`})}
@@ -479,15 +481,31 @@ customize(){
 steps(){
   const tk=todayKey(),d=S.days[tk]||{},st=d.steps||0,g=S.settings.stepGoal,p=Math.min(st/g,1),C=2*Math.PI*84;
   const keys=Array.from({length:14},(_,i)=>ymd(addDays(new Date(),i-13)));
+  const ws=weekStart(new Date()),w=weekSteps(ws),wt=w.target,wst=weekAvgStatus(ws);
+  const weekItems=w.keys.map((k,i)=>{const v=S.days[k]?.steps||0,fut=k>tk;return{label:WD[i],v:fut?0:v,cls:fut?'b-off':v>=stepGoalFor(k)?'b-met':'b-no',title:`${fmtDay(k)}: ${fut?'–':fmtInt(v)}`}});
+  const hist=Array.from({length:12},(_,i)=>addDays(ws,-7*(11-i)));
+  const histItems=hist.map((h,i)=>{const x=weekSteps(h);const v=x.done?x.weekAvg:x.avg;return{label:i%2===1?String(isoWeek(h)):'',v,cls:wt&&v>=wt?'b-met':'b-no',title:`${weekLabel(h)}: Ø ${fmtInt(v)}${x.done?'':' (laufend)'}`}});
   const top=`<div class="panel">
     <div class="ring"><svg viewBox="0 0 200 200"><circle class="trk" cx="100" cy="100" r="84"/><circle class="prg" cx="100" cy="100" r="84" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-p)}"/></svg>
     <div class="c"><b>${fmtInt(st)}</b><span class="muted">von ${fmtInt(g)}</span></div></div>
-    <div style="text-align:center;font-weight:600">${st>=g?'Ziel erreicht':'Noch '+fmtInt(g-st)+' Schritte'}</div>
+    <div style="text-align:center;font-weight:600">${st>=g?'Tagesziel erreicht':'Noch '+fmtInt(g-st)+' Schritte heute'}</div>
     <div style="text-align:center" class="muted small">${fmtInt(d.active)} kcal aktiv verbrannt</div></div>
+    ${wt?`<h2>Wochendurchschnitt · ${weekLabel(ws)}</h2><div class="panel">
+      <div class="rowflex"><b style="font-family:var(--font-display);font-size:22px" class="num">Ø ${fmtInt(w.avg)}</b>${chip(wst)}</div>
+      ${bar(w.avg/wt,wst==='met'?'good':'',true)}
+      <div class="kpis"><div class="kpi"><b>${fmtInt(wt)}</b><span>Ziel Ø pro Tag</span></div>
+        <div class="kpi"><b>${fmtInt(w.sum)}</b><span>Schritte diese Woche</span></div>
+        <div class="kpi"><b>${wst==='met'?'✓':fmtInt(w.needed)}</b><span>${wst==='met'?'Wochenziel sicher':'nötig Ø pro Tag ab heute'}</span></div></div>
+      <span class="muted tiny">Ø über ${w.past.length} Tag${w.past.length===1?'':'e'} bisher (heute läuft noch). Das Wochenziel ist erreicht, wenn die Woche insgesamt ${fmtInt(wt*7)} Schritte hat.</span></div>`:''}
+    <h2>Diese Woche</h2><div class="panel chart">${bars(weekItems,[{v:g,label:'Tagesziel '+fmtInt(g),cls:'goal'},...(w.avg?[{v:w.avg,label:'Ø '+fmtInt(w.avg),cls:'avg',left:true}]:[])],'Schritte dieser Woche')}</div>
+    <h2>Wochendurchschnitte · 12 Wochen (KW)</h2><div class="panel chart">${bars(histItems,wt?[{v:wt,label:'Ziel Ø '+fmtInt(wt),cls:'goal'}]:[],'Wochendurchschnitt der Schritte')}
+      <span class="muted tiny">Grün = Wochenziel erreicht. Die aktuelle Woche zeigt den bisherigen Durchschnitt.</span></div>
     <h2>Letzte 14 Tage</h2><div class="panel chart">${barChart(keys,g)}</div>`;
-  const html=`<h2>Tagesziel</h2><div class="panel"><label class="field" for="stepGoal">Schritte pro Tag
+  const html=`<h2>Ziele</h2><div class="panel"><label class="field" for="stepGoal">Tagesziel (Schritte pro Tag)
     <input id="stepGoal" type="text" inputmode="numeric" value="${g}" data-in="stepGoal"></label>
-    <span class="muted small">Ist das Ziel erreicht, wird die Kachel auf dem Dashboard grün.</span></div>
+    <label class="field" for="stepWeekAvg">Wochendurchschnitt (Ø Schritte pro Tag, leer = aus)
+    <input id="stepWeekAvg" type="text" inputmode="numeric" value="${wt||''}" data-in="stepWeekAvg"></label>
+    <span class="muted small">Tagesziel erreicht: Kachel wird grün. Der Wochendurchschnitt zählt zusätzlich in die Wochenbewertung und erscheint im Kalender.</span></div>
     <h2>Verlauf</h2><div class="list">${[...keys].reverse().map(k=>`<div><span class="grow">${fmtDay(k)}</span><span class="num">${S.days[k]?fmtInt(S.days[k].steps):'–'}</span>${chip(stepsStatus(k))}</div>`).join('')}</div>`;
   return{title:'Schritte',top,html};
 },
@@ -760,8 +778,10 @@ gewicht: [gewicht]</pre>
 }
 
 function card(k,tk,d){
-  let val,det,p,st;
-  if(k==='steps'){const g=S.settings.stepGoal;val=fmtInt(d.steps);det=`von ${fmtInt(g)} Schritten`;p=(d.steps||0)/g;st=stepsStatus(tk)}
+  let val,det,p,st,extra='';
+  if(k==='steps'){const g=S.settings.stepGoal;val=fmtInt(d.steps);det=`von ${fmtInt(g)} Schritten`;p=(d.steps||0)/g;st=stepsStatus(tk);
+    const w=weekSteps(weekStart(new Date()));if(w.target){const ws2=weekAvgStatus(weekStart(new Date()));
+      extra=`<span class="line2 small" style="margin-top:2px"><span>Wochen-Ø <b class="num">${fmtInt(w.avg)}</b></span><span class="detail">Ziel Ø ${fmtInt(w.target)}${ws2==='met'?' ✓':''}</span></span>${bar(w.avg/w.target,ws2==='met'?'good':'')}`}}
   else if(k==='nutrition'){
     const tg=S.settings.nutrition,act=NUTR.filter(([n])=>isSet(tg[n])),met=act.filter(([n])=>isMet(tg[n],d[n]||0)).length,ref=tg.kcal?(tg.kcal.max??tg.kcal.min):null;
     val=`${fmtInt(d.kcal)} kcal`;det=act.length?`${met} von ${act.length} Werten im Ziel`:'Keine Zielwerte festgelegt';
@@ -769,9 +789,34 @@ function card(k,tk,d){
   }else{const c=weekCount(weekStart(new Date())),t=S.settings.weekly;val=`${c} / ${t}`;det='Einheiten diese Woche';p=c/t;st=c>=t?'met':'pending'}
   return `<button class="card ${st==='met'?'met':''} ${st==='missed'?'missed':''}" data-a="push" data-v="${k}">
     <span class="head">${ICON[k]}<span class="grow">${GOALS[k].t}</span>${st==='met'?'<span class="small">Erreicht</span>':''}<span aria-hidden="true">›</span></span>
-    <span class="line2"><span class="val">${val}</span><span class="detail">${det}</span></span>${bar(p,st==='missed'?'bad':'')}</button>`;
+    <span class="line2"><span class="val">${val}</span><span class="detail">${det}</span></span>${bar(p,st==='missed'?'bad':'')}${extra||''}</button>`;
 }
 
+// Schritte: Wochendurchschnitt (Mo–So)
+function weekSteps(ws){
+  const tk=todayKey(),keys=Array.from({length:7},(_,i)=>ymd(addDays(ws,i))),past=keys.filter(k=>k<=tk);
+  const sum=past.reduce((a,k)=>a+(S.days[k]?.steps||0),0),before=past.filter(k=>k<tk).reduce((a,k)=>a+(S.days[k]?.steps||0),0);
+  const done=keys[6]<tk,daysLeft=done?0:7-past.filter(k=>k<tk).length;
+  const target=S.settings.stepWeekAvg||0;
+  return{keys,past,sum,avg:past.length?sum/past.length:0,weekAvg:sum/7,done,target,
+    needed:target&&daysLeft?Math.max(0,(target*7-before)/daysLeft):0,daysLeft};
+}
+function weekAvgStatus(ws){
+  const w=weekSteps(ws);if(!w.target||!w.past.length)return 'nodata';
+  if(w.sum>=w.target*7)return 'met';
+  return w.done?'missed':'pending';
+}
+// Allgemeines Balkendiagramm: items [{label,v,cls,title}], lines [{v,label,cls}]
+function bars(items,lines,aria){
+  const W=340,H=180,pl=4,pr=4,pt=16,pb=22,max=Math.max(1,...items.map(i=>i.v),...lines.map(l=>l.v))*1.1;
+  const bw=(W-pl-pr)/items.length,y=v=>pt+(H-pt-pb)*(1-v/max);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${aria}">`;
+  items.forEach((it,i)=>{const x=pl+i*bw+bw*.16,h=Math.max(H-pb-y(it.v),it.v?2:0);
+    s+=`<rect class="${it.cls}" x="${x}" y="${H-pb-h}" width="${bw*.68}" height="${h}" rx="3"><title>${it.title||it.label+': '+fmtInt(it.v)}</title></rect>`;
+    if(it.label) s+=`<text x="${x+bw*.34}" y="${H-6}" text-anchor="middle">${it.label}</text>`});
+  lines.forEach(l=>{s+=`<line class="${l.cls}" x1="${pl}" x2="${W-pr}" y1="${y(l.v)}" y2="${y(l.v)}"/><text class="${l.cls}-t" x="${l.left?pl+2:W-pr}" y="${y(l.v)-4}" text-anchor="${l.left?'start':'end'}">${l.label}</text>`});
+  return s+'</svg>';
+}
 function barChart(keys,goal){
   const W=340,H=170,pl=4,pr=4,pt=14,pb=20,vals=keys.map(k=>S.days[k]?.steps||0);
   const max=Math.max(goal,...vals)*1.08,bw=(W-pl-pr)/keys.length,y=v=>pt+(H-pt-pb)*(1-v/max);
@@ -955,6 +1000,7 @@ const A={
   recapOpen(el){closeRecap();tab='cal';stacks.cal=[stacks.cal[0],{v:'week',k:el.dataset.k}];render();window.scrollTo(0,0)}
 };
 const INPUTS={
+  stepWeekAvg(el){const n=parseNum(el.value);S.settings.stepWeekAvg=n&&n>0?Math.round(n):null;save();refreshLive()},
   stepGoal(el){const n=parseNum(el.value);if(n&&n>0){S.settings.stepGoal=Math.round(n);upsertDay(todayKey(),{});save();refreshLive()}},
   target(el){const k=el.dataset.k,t=S.settings.nutrition[k]||{min:null,max:null};t[el.dataset.m]=el.value.trim()===''?null:parseNum(el.value);
     if(isSet(t))S.settings.nutrition[k]=t;else delete S.settings.nutrition[k];if(S.days[todayKey()])upsertDay(todayKey(),{});save();refreshLive()},
