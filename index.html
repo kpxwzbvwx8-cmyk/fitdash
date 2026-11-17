@@ -834,17 +834,18 @@ function importText(text){
     if(/^\s*fitdash\s*$/i.test(line)){if(cur&&Object.keys(cur).length)blocks.push(cur);cur={};continue}
     if(!m) continue; const f=KEYMAP[m[1].toLowerCase()]; if(!f) continue;
     cur=cur||{};
-    if(f==='date'){if(cur.date||cur.badDate){blocks.push(cur);cur={}}const dk=parseDate(m[2]);if(dk){cur.date=dk;const hm=m[2].match(/T(\d{1,2}):|\s(\d{1,2}):\d{2}/);cur.hour=hm?+(hm[1]??hm[2]):0}else if(m[2].trim())cur.badDate=m[2].trim()}
+    if(f==='date'){if(cur.date||cur.badDate){blocks.push(cur);cur={}}const dk=parseDate(m[2]);if(dk){cur.date=dk;const hm=m[2].match(/T(\d{1,2}):|\s(\d{1,2}):\d{2}/);cur.hour=hm?+(hm[1]??hm[2]):null}else if(m[2].trim())cur.badDate=m[2].trim()}
     else if(f==='weight'){const w=parseImportNum(m[2]);if(w&&w>20)cur.weight=w}
     else cur[f]=parseImportNum(m[2])??0;
   }
   if(cur&&Object.keys(cur).length) blocks.push(cur);
   const done=[];importText.bad=[];
   // Stundenschritte von Watch und iPhone: pro Stunde den höheren Wert, dann zum Tag addieren
-  const hourly={};
+  const hourly={};importText.noHour=0;
   for(const b of blocks){
     if(b.badDate||b.stepsHour==null) continue;
-    const k=b.date||todayKey(),h=b.hour||0,day=hourly[k]=hourly[k]||{};
+    if(b.hour==null){importText.noHour++;delete b.stepsHour;continue}   // ohne Uhrzeit nicht verwertbar
+    const k=b.date||todayKey(),h=b.hour,day=hourly[k]=hourly[k]||{};
     day[h]=Math.max(day[h]||0,b.stepsHour);delete b.stepsHour;
   }
   Object.entries(hourly).forEach(([k,hrs])=>blocks.push({date:k,steps:Math.round(Object.values(hrs).reduce((a,v)=>a+v,0))}));
@@ -862,12 +863,14 @@ function importText(text){
 function doImport(text){
   const done=importText(text);
   const bad=importText.bad||[];
+  const noHourMsg=importText.noHour?`${importText.noHour} Stundenwerte ohne Uhrzeit wurden ignoriert. Schalte im Kurzbefehl beim Startdatum „ISO 8601-Zeit“ ein.`:'';
   if(bad.length&&!done.length){const c=stacks.sync[0];c.msg=null;c.err=`Das Datum wurde nicht erkannt: „${esc(bad[0])}“. Bitte schick diesen Text an Claude oder stell im Kurzbefehl beim Startdatum das Format „ISO 8601“ ein.`;tab='sync';stacks.sync=[c];render();return}
+  if(!done.length&&noHourMsg){const c=stacks.sync[0];c.msg=null;c.err=noHourMsg;tab='sync';stacks.sync=[c];render();return}
   if(!done.length){
     const c=stacks.sync[0];c.msg=null;
     c.err=String(text||'').trim()?`Im eingefügten Text wurden keine Werte erkannt. Angekommen ist: „${esc(String(text).trim().slice(0,160))}“`:'Die Zwischenablage war leer. Der Kurzbefehl hat nichts kopiert: Prüfe, ob am Ende „In Zwischenablage kopieren“ mit „Text“ steht.';
     tab='sync';stacks.sync=[c];render();const b=$('#pastebox');if(b)b.value=String(text||'');return}
-  stacks.sync[0].err=null;
+  stacks.sync[0].err=noHourMsg||null;
   const days=[...new Set(done)].sort(),k=days[days.length-1],d=S.days[k]||{};
   const c=stacks.sync[0]; c.msg=days.length>1?`${days.length} Tage übernommen (${fmtDay(days[0])} bis ${fmtDay(k)}).${bad.length?` ${bad.length} Block/Blöcke mit unbekanntem Datum übersprungen.`:''}`:`${fmtDayLong(k)}: ${fmtInt(d.steps)} Schritte, ${fmtInt(d.kcal)} kcal, ${fmt1(d.protein)} g Protein`;
   toast('Daten übernommen');
