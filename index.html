@@ -226,6 +226,12 @@ h2{margin-top:14px}
 .photos span{position:absolute;left:0;right:0;bottom:0;font-size:11px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.6));padding:10px 6px 4px}
 .photos button.sel{outline:3px solid var(--accent);outline-offset:-3px}
 .compare{display:grid;grid-template-columns:1fr 1fr;gap:6px}.compare figure{margin:0}.compare img{width:100%;border-radius:12px;display:block}.compare figcaption{font-size:12px;color:var(--muted);text-align:center;padding-top:4px}
+.fatbox{display:flex;align-items:center;gap:12px;border-radius:14px;padding:10px 12px;background:var(--good-soft)}
+.fatbox.gain{background:color-mix(in srgb,var(--bad) 14%,var(--surface))}
+.fatbox b{display:block;font-family:var(--font-display);font-size:22px}
+.fatbox .grow{display:flex;flex-direction:column}
+.fatico{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:18px;background:var(--good);color:#fff;flex:none}
+.fatbox.gain .fatico{background:var(--bad)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -464,7 +470,12 @@ function deficitTable(rows,clickable){
     ${rows.map((r,i)=>`<tr${clickable?` class="click" data-a="day" data-k="${r.k}"`:''}><td>${WD[i]} <span class="muted small">${parseYmd(r.k).getDate()}.</span></td><td>${r.eaten==null?'–':fmtInt(r.eaten)}</td><td>${r.eaten==null?'–':fmtInt(r.burned)}</td><td class="${defCls(r.def)}">${defText(r.def)}</td></tr>`).join('')}</tbody>
     <tfoot><tr><td>Ø / Tag</td><td>${n?fmtInt(te/n):'–'}</td><td>${n?fmtInt(tb/n):'–'}</td><td class="${defCls(n?tot/n:null)}">${n?defText(tot/n):'–'}</td></tr>
     <tr><td>Woche</td><td>${n?fmtInt(te):'–'}</td><td>${n?fmtInt(tb):'–'}</td><td class="${defCls(n?tot:null)}">${n?defText(tot):'–'}</td></tr></tfoot></table></div>
-    <span class="muted tiny">Verbrannt = aktive Energie + Ruheenergie. Positive Zahl = Defizit, „+“ = Überschuss.</span>`;
+    ${n?(()=>{const kg=tot/KCAL_PER_KG,loss=kg>=0,g=Math.abs(kg)*1000;
+      const tk=todayKey(),open=rows.some(r=>r.k>tk||r.k===tk),proj=open&&n?tot/n*7/KCAL_PER_KG:null;
+      return `<div class="fatbox ${loss?'loss':'gain'}"><span class="fatico" aria-hidden="true">${loss?'↓':'↑'}</span><span class="grow"><span class="tiny muted">Geschätzt ${loss?'verbranntes':'zugelegtes'} Körperfett${open?' bisher':''}</span>
+        <b class="num">≈ ${g<1000?fmtInt(g)+' g':fmt1(Math.abs(kg))+' kg'}</b>
+        ${proj!=null&&Math.abs(proj-kg)>0.005?`<span class="tiny muted">Bei gleichem Ø bis Sonntag: ≈ ${Math.abs(proj)<1?fmtInt(Math.abs(proj)*1000)+' g':fmt1(Math.abs(proj))+' kg'}</span>`:''}</span></div>`})():''}
+    <span class="muted tiny">Verbrannt = aktive Energie + Ruheenergie. Positive Zahl = Defizit, „+“ = Überschuss. Körperfett geschätzt mit 7.700 kcal ≈ 1 kg; die Waage schwankt zusätzlich durch Wasser.</span>`;
 }
 function allWeeks(){
   const keys=[...Object.keys(S.days).filter(k=>hasNutr(S.days[k])||S.days[k].steps),...S.sessions.map(s=>s.date),...Object.keys(S.body)].sort();
