@@ -643,7 +643,8 @@ stats(c){
 },
 sync(c){
   const name=S.settings.shortcut;
-  const top=c.msg?`<div class="panel" style="background:var(--good-soft)"><b>Übernommen</b><span class="small">${c.msg}</span></div>`:'';
+  const top=(c.msg?`<div class="panel" style="background:var(--good-soft)"><b>Übernommen</b><span class="small">${c.msg}</span></div>`:'')
+    +(c.err?`<div class="panel" style="border:2px solid var(--bad)"><b class="st-missed">Nicht übernommen</b><span class="small">${c.err}</span></div>`:'');
   const html=`<div class="panel"><b>Daten aus Apple Health holen</b>
       <span class="muted small">Schritte und aktive kcal kommen aus der Fitness-App, Nährwerte aus FatSecret. Ein Kurzbefehl liest sie aus Apple Health und kopiert sie.</span>
       <a class="btn primary" href="shortcuts://run-shortcut?name=${encodeURIComponent(name)}" data-a="markSync">1 · Kurzbefehl „${esc(name)}“ starten</a>
@@ -803,7 +804,11 @@ function importText(text){
 }
 function doImport(text){
   const done=importText(text);
-  if(!done.length){toast('Keine FitDash-Daten im Text gefunden');return}
+  if(!done.length){
+    const c=stacks.sync[0];c.msg=null;
+    c.err=String(text||'').trim()?`Im eingefügten Text wurden keine Werte erkannt. Angekommen ist: „${esc(String(text).trim().slice(0,160))}“`:'Die Zwischenablage war leer. Der Kurzbefehl hat nichts kopiert: Prüfe, ob am Ende „In Zwischenablage kopieren“ mit „Text“ steht.';
+    tab='sync';stacks.sync=[c];render();const b=$('#pastebox');if(b)b.value=String(text||'');return}
+  stacks.sync[0].err=null;
   const k=done[done.length-1],d=S.days[k];
   const c=stacks.sync[0]; c.msg=`${done.length>1?done.length+' Tage':fmtDayLong(k)}: ${fmtInt(d.steps)} Schritte, ${fmtInt(d.kcal)} kcal, ${fmt1(d.protein)} g Protein`;
   toast('Daten übernommen');
@@ -851,7 +856,9 @@ const A={
   day(el){push({v:'day',k:el.dataset.k})},
   markSync(){pendingSync=true},
   async pasteClip(){
-    try{const t=await navigator.clipboard.readText();if(t&&t.trim()){doImport(t);return}}catch(e){}
+    try{const t=await navigator.clipboard.readText();const b=$('#pastebox');if(b)b.value=t||'';
+      if(t&&t.trim()){setTimeout(()=>doImport(t),300);return}
+      doImport('');return}catch(e){}
     const b=$('#pastebox');b.focus();toast('Lang ins Feld drücken und „Einsetzen“ wählen');
   },
   importBox(){doImport($('#pastebox').value)},
@@ -913,10 +920,10 @@ document.addEventListener('change',e=>{
   if(el.dataset.in==='exName')updatePrev(Number(el.dataset.i));   // Vorwerte neu suchen
   if(el.dataset.in==='sDate')cur().draft.ex.forEach((_,i)=>updatePrev(i));
 });
+// Text sichtbar einfügen lassen, danach übernehmen
 document.addEventListener('paste',e=>{
   if(e.target.id!=='pastebox')return;
-  const t=(e.clipboardData||window.clipboardData)?.getData('text');
-  if(t){e.preventDefault();doImport(t)}
+  setTimeout(()=>{const b=$('#pastebox');doImport(b?b.value:'')},250);
 });
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){
