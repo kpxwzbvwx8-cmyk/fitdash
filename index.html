@@ -561,6 +561,16 @@ const weeksText=w=>{const d=addDays(new Date(),Math.round(w*7));return `${w<1.5?
 function initials(){const n=(S.profile.name||'').trim();if(!n)return '';return n.split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase()}
 
 /* ---------- Ernährung: Protein pro kg, Kalorienziel aus Zielgewicht ---------- */
+const PPK_PRESETS=[1.2,1.4,1.6,1.8,2,2.2];
+function ppkInfo(){const v=S.settings.proteinPerKg,w=latestWeight();
+  if(!v)return 'Aus. Dann gilt das Protein-Minimum aus den Zielwerten.';
+  return w?`= mind. ${fmtInt(v*w.v)} g Protein pro Tag bei ${fmt1(w.v)} kg. Passt sich deinem Gewicht automatisch an.`:'Trag dein Gewicht ein, dann berechne ich die Gramm.'}
+function ppkControl(id){const v=S.settings.proteinPerKg;
+  return `<div class="ppkbox" style="display:flex;flex-direction:column;gap:6px"><b>Protein pro kg Körpergewicht</b>
+    <div class="minmax" style="grid-template-columns:1fr auto"><input id="${id}" type="text" inputmode="decimal" placeholder="z. B. 1,8" value="${fmtRaw(v)}" data-in="ppk" aria-label="Protein in Gramm pro Kilogramm Körpergewicht"><span class="muted small">g/kg</span></div>
+    <div class="chips">${PPK_PRESETS.map(p=>`<button class="${v===p?'on':''}" data-a="ppkSet" data-v="${p}">${p.toLocaleString('de-DE')}</button>`).join('')}<button class="${!v?'on':''}" data-a="ppkSet" data-v="">Aus</button></div>
+    <span class="muted tiny ppk-info">${ppkInfo()}</span>
+    <span class="muted tiny">Richtwerte: 1,2–1,6 Erhalt · 1,6–2,2 Muskelaufbau oder Abnehmen mit Krafttraining.</span></div>`}
 function effNutrition(){
   const n=JSON.parse(JSON.stringify(S.settings.nutrition||{})),ppk=S.settings.proteinPerKg,w=latestWeight();
   if(ppk&&w){n.protein={min:Math.round(ppk*w.v),max:n.protein?n.protein.max??null:null}}
@@ -767,9 +777,7 @@ nutrition(){
   const html=`<h2>Zielwerte</h2><div class="panel">${NUTR.map(([k,t,u])=>`<div><div style="font-weight:600;margin-bottom:4px">${t} <span class="muted">(${u})</span></div>
       <div class="minmax"><input aria-label="${t} Minimum" id="min-${k}" type="text" inputmode="decimal" placeholder="Min" value="${fmtRaw(tg[k]?.min)}" data-in="target" data-k="${k}" data-m="min">
       <span class="muted">–</span><input aria-label="${t} Maximum" id="max-${k}" type="text" inputmode="decimal" placeholder="Max" value="${fmtRaw(tg[k]?.max)}" data-in="target" data-k="${k}" data-m="max"></div></div>`).join('')}
-      <div><div style="font-weight:600;margin-bottom:4px">Protein automatisch <span class="muted">(g pro kg Körpergewicht)</span></div>
-        <input id="ppk" type="text" inputmode="decimal" placeholder="z. B. 1,8" value="${fmtRaw(S.settings.proteinPerKg)}" data-in="ppk" aria-label="Protein in Gramm pro Kilogramm">
-        <span class="muted tiny">${S.settings.proteinPerKg&&latestWeight()?`Ergibt mind. ${fmtInt(S.settings.proteinPerKg*latestWeight().v)} g bei ${fmt1(latestWeight().v)} kg und passt sich deinem Gewicht automatisch an. Überschreibt das Protein-Minimum.`:'Leer = Protein-Minimum oben gilt.'}</span></div>
+      ${ppkControl('ppk')}
       <span class="muted small">Min und Max sind optional. Ein leeres Feld bedeutet kein Ziel.</span></div>
     <h2>Verlauf</h2><div class="list">${keys.map(k=>`<div><span class="grow">${fmtDay(k)}</span><span class="num">${S.days[k]?fmtInt(S.days[k].kcal)+' kcal':'–'}</span>${chip(nutrStatus(k))}</div>`).join('')}</div>`;
   return{title:'Ernährung',top,html};
@@ -948,6 +956,7 @@ profile(c){
           <span class="small">Ziel erreicht in ca. ${Math.round(g.weeks)} Wochen · ${g.date.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'})}</span>
           <span class="muted tiny">Verbrauch ≈ ${fmtInt(g.tdee)} kcal/Tag (Ruheenergie + Ø aktive Energie der letzten 14 Tage${g.actEstimated?', aktiv geschätzt mit 300 kcal':''}).</span>
           ${g.belowBmr?'<span class="small st-missed">Das liegt unter deinem Grundumsatz. Wähle ein langsameres Tempo.</span>':''}
+          <div style="margin-top:8px">${ppkControl('ppkPlan')}</div>
           <button class="btn sm primary" data-a="applyPlan" style="margin-top:6px">Als Ernährungsziel übernehmen</button></div>`})()}
       <span class="muted tiny">Trend = was deine Waage tatsächlich zeigt. Bilanz = was Essen minus Verbrauch rechnerisch ergibt (7.700 kcal ≈ 1 kg). Liegen beide weit auseinander, stimmen meist Kalorienangaben oder Verbrauch nicht ganz.</span>`}</div>`;
   }
@@ -1322,7 +1331,8 @@ const A={
   backupShare(){shareBackup()},
   pace(el){S.profile.pace=Number(el.dataset.p);save();refreshLive()},
   applyPlan(){const g=goalPlan();if(!g||!g.intake)return;S.settings.nutrition.kcal={min:null,max:Math.round(g.intake/10)*10};
-    if(!S.settings.proteinPerKg)S.settings.proteinPerKg=1.8;if(S.days[todayKey()])upsertDay(todayKey(),{});save();toast(`Ziel gesetzt: max. ${fmtInt(Math.round(g.intake/10)*10)} kcal, Protein ${fmt1(S.settings.proteinPerKg)} g/kg`);refreshLive()},
+    if(S.days[todayKey()])upsertDay(todayKey(),{});save();toast(`Ziel gesetzt: max. ${fmtInt(Math.round(g.intake/10)*10)} kcal${S.settings.proteinPerKg?`, Protein ${S.settings.proteinPerKg.toLocaleString('de-DE')} g/kg`:''}`);refreshLive()},
+  ppkSet(el){const v=parseNum(el.dataset.v);S.settings.proteinPerKg=v&&v>0?v:null;if(S.days[todayKey()])upsertDay(todayKey(),{});save();render()},
   restGo(el){const d=cur().draft,e=d.ex[Number(el.dataset.i)];ensureAudio();startRest(restFor(d,e.name),e.name)},
   restAdd(){if(REST){REST.end=Math.max(REST.end,Date.now())+30000;REST.total+=30;REST.doneAt=null;drawRest()}},
   restStop(){REST=null;drawRest()},
@@ -1360,7 +1370,10 @@ const INPUTS={
     else if(f==='targetWeight'){const n=parseNum(v);const nv=n&&n>20?Math.round(n*10)/10:null;
       if(nv!==p.targetWeight){p.targetWeight=nv;const w=latestWeight();p.goalStart=nv&&w?{date:w.k,weight:w.v}:null}}
     save();refreshLive()},
-  ppk(el){const v=parseNum(el.value);S.settings.proteinPerKg=v&&v>0&&v<5?v:null;if(S.days[todayKey()])upsertDay(todayKey(),{});save();refreshLive()},
+  ppk(el){const v=parseNum(el.value);S.settings.proteinPerKg=v&&v>0&&v<5?v:null;if(S.days[todayKey()])upsertDay(todayKey(),{});save();
+    document.querySelectorAll('.ppk-info').forEach(x=>x.textContent=ppkInfo());
+    el.closest('.ppkbox').querySelectorAll('[data-a="ppkSet"]').forEach(b=>b.classList.toggle('on',String(parseNum(b.dataset.v)||'')===String(S.settings.proteinPerKg||'')));
+    if(cur().v==='nutrition')refreshLive()},
   stepWeekAvg(el){const n=parseNum(el.value);S.settings.stepWeekAvg=n&&n>0?Math.round(n):null;save();refreshLive()},
   stepGoal(el){const n=parseNum(el.value);if(n&&n>0){S.settings.stepGoal=Math.round(n);upsertDay(todayKey(),{});save();refreshLive()}},
   target(el){const k=el.dataset.k,t=S.settings.nutrition[k]||{min:null,max:null};t[el.dataset.m]=el.value.trim()===''?null:parseNum(el.value);
