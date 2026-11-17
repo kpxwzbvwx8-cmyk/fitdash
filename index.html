@@ -805,7 +805,7 @@ function updatePrev(i){
 }
 
 /* ---------- Import ---------- */
-const KEYMAP={schritte:'steps',steps:'steps',aktiv:'active',aktive:'active',active:'active',kcal:'kcal',kalorien:'kcal',energie:'kcal',nahrungsenergie:'kcal',protein:'protein',eiweiss:'protein','eiweiß':'protein',fett:'fat',fat:'fat',kh:'carbs',kohlenhydrate:'carbs',carbs:'carbs',ballaststoffe:'fiber',fiber:'fiber',datum:'date',date:'date',ruhe:'resting',ruheenergie:'resting',resting:'resting',gewicht:'weight',weight:'weight'};
+const KEYMAP={stundenschritte:'stepsHour',schrittestunde:'stepsHour',schritte:'steps',steps:'steps',aktiv:'active',aktive:'active',active:'active',kcal:'kcal',kalorien:'kcal',energie:'kcal',nahrungsenergie:'kcal',protein:'protein',eiweiss:'protein','eiweiß':'protein',fett:'fat',fat:'fat',kh:'carbs',kohlenhydrate:'carbs',carbs:'carbs',ballaststoffe:'fiber',fiber:'fiber',datum:'date',date:'date',ruhe:'resting',ruheenergie:'resting',resting:'resting',gewicht:'weight',weight:'weight'};
 const MONTHS=['jan','feb','mär','apr','mai','jun','jul','aug','sep','okt','nov','dez'];
 const MONTHS_EN=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const WEEKDAYS=[['sonntag','sunday'],['montag','monday'],['dienstag','tuesday'],['mittwoch','wednesday'],['donnerstag','thursday'],['freitag','friday'],['samstag','saturday']];
@@ -834,12 +834,20 @@ function importText(text){
     if(/^\s*fitdash\s*$/i.test(line)){if(cur&&Object.keys(cur).length)blocks.push(cur);cur={};continue}
     if(!m) continue; const f=KEYMAP[m[1].toLowerCase()]; if(!f) continue;
     cur=cur||{};
-    if(f==='date'){if(cur.date||cur.badDate){blocks.push(cur);cur={}}const dk=parseDate(m[2]);if(dk)cur.date=dk;else if(m[2].trim())cur.badDate=m[2].trim()}
+    if(f==='date'){if(cur.date||cur.badDate){blocks.push(cur);cur={}}const dk=parseDate(m[2]);if(dk){cur.date=dk;const hm=m[2].match(/T(\d{1,2}):|\s(\d{1,2}):\d{2}/);cur.hour=hm?+(hm[1]??hm[2]):0}else if(m[2].trim())cur.badDate=m[2].trim()}
     else if(f==='weight'){const w=parseImportNum(m[2]);if(w&&w>20)cur.weight=w}
     else cur[f]=parseImportNum(m[2])??0;
   }
   if(cur&&Object.keys(cur).length) blocks.push(cur);
   const done=[];importText.bad=[];
+  // Stundenschritte von Watch und iPhone: pro Stunde den höheren Wert, dann zum Tag addieren
+  const hourly={};
+  for(const b of blocks){
+    if(b.badDate||b.stepsHour==null) continue;
+    const k=b.date||todayKey(),h=b.hour||0,day=hourly[k]=hourly[k]||{};
+    day[h]=Math.max(day[h]||0,b.stepsHour);delete b.stepsHour;
+  }
+  Object.entries(hourly).forEach(([k,hrs])=>blocks.push({date:k,steps:Math.round(Object.values(hrs).reduce((a,v)=>a+v,0))}));
   for(const b of blocks){
     if(b.badDate){importText.bad.push(b.badDate);continue}
     const k=b.date||todayKey(); const vals={};
