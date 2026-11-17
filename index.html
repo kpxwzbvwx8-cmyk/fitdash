@@ -248,6 +248,21 @@ function parseRange(v){const m=String(v??'').match(/(\d+)\s*(?:[-–—\/]|bis|\
   if(m){let a=+m[1],b=+m[2];if(a>b)[a,b]=[b,a];return{repsMin:Math.max(1,a),repsMax:Math.max(1,b)}}
   const n=parseInt(v);return n>0?{repsMin:n,repsMax:n}:null}
 function migrateTemplates(st){(st.templates||[]).forEach(t=>t.exercises.forEach(e=>{if(e.repsMin==null){const n=parseInt(e.reps)||10;e.repsMin=n;e.repsMax=n}delete e.reps}))}
+const MY_PLAN="Dienstag – Torso A\n1\tSchrägbank Kurzhantel\t2\t6–10\n2\tLatzug breit\t2\t6–10\n3\tRudern eng am Kabel\t2\t8–12\n4\tButterfly\t2\t10–15\n5\tSeitheben Kabel\t2\t12–20\n6\tReverse Butterfly\t2\t12–20\n\nMittwoch – Limbs A\n1\tBeinpresse\t2\t6–10\n2\tRückenstrecker, hüftdominant\t2\t8–12\n3\tBeinbeuger\t2\t8–12\n4\tBeinstrecker\t2\t10–15\n5\tWadenmaschine\t2\t8–15\n6\tPreacher Curls\t3\t8–12\n7\tTrizeps Cable Pushdown\t3\t8–12\n8\tBauchpresse\t2\t10–15\n\nDonnerstag – Torso B\n1\tT-Bar Rudern\t2\t6–10\n2\tSchrägbank Kurzhantel\t2\t8–12\n3\tLatzug breit\t2\t8–12\n4\tSchulterpresse Maschine\t2\t8–12\n5\tButterfly\t2\t10–15\n6\tSeitheben Kabel\t2\t12–20\n7\tReverse Butterfly\t2\t12–20\n\nSamstag – Limbs B\n1\tBeinbeuger\t2\t8–12\n2\tBeinpresse\t2\t8–12\n3\tRückenstrecker, hüftdominant\t2\t10–15\n4\tBeinstrecker\t2\t10–15\n5\tWadenmaschine\t2\t8–15\n6\tHammercurls am Kabel\t3\t8–12\n7\tTrizeps Overhead Cable Extension\t3\t10–15\n8\tBauchpresse\t2\t10–15";
+// Trainingsplan als Text: Überschrift = Einheit, Zeilen = Nr. Übung Sätze Wdh.
+function parsePlan(text){
+  const out=[];let cur=null;
+  for(let line of String(text).split(/\r?\n/)){
+    line=line.replace(/\u00a0/g,' ').trim(); if(!line||/^nr\.?(\s|\t|$)/i.test(line)) continue;
+    const cols=line.split(/\t+/).map(x=>x.trim()).filter(Boolean);
+    let name,sets,reps;
+    if(cols.length>=4&&/^\d+$/.test(cols[0])){[,name,sets,reps]=cols}
+    else{const m=line.match(/^\d+[.)]?\s+(.+?)\s+(\d+)\s*(?:x|×)?\s+(\d+\s*(?:[-–—]|bis)\s*\d+|\d+)\s*(?:wdh\.?)?$/i);if(m){[,name,sets,reps]=m}}
+    if(name&&cur){const r=parseRange(reps);cur.exercises.push({name,sets:Math.max(1,parseInt(sets)||1),...(r||{repsMin:10,repsMax:10})})}
+    else if(!/^\d/.test(line)){cur={name:line.replace(/\s+[-–]\s+/,' – '),exercises:[]};out.push(cur)}
+  }
+  return out.filter(t=>t.exercises.length);
+}
 function targetFor(d,name){const t=d.templateId&&S.templates.find(x=>x.id===d.templateId);return t&&t.exercises.find(e=>norm(e.name)===norm(name))}
 function load(){
   try{const raw=localStorage.getItem(KEY);
@@ -506,7 +521,8 @@ workout(){
   const ss=sortedSessions().slice(0,30);
   const html=`<h2>Trainingsplan · Vorlagen</h2><div class="list">
     ${S.templates.map(tp=>`<button class="rowbtn" data-a="push" data-v="template" data-id="${tp.id}"><span class="grow"><b>${esc(tp.name)}</b><br><span class="muted small">${esc(tp.exercises.map(e=>e.name).join(' · '))||'Keine Übungen'}</span></span><span class="muted">›</span></button>`).join('')}
-    <button class="rowbtn" data-a="newTemplate"><span class="link">+ Neue Trainingseinheit anlegen</span></button></div>
+    <button class="rowbtn" data-a="newTemplate"><span class="link">+ Neue Trainingseinheit anlegen</span></button>
+    <button class="rowbtn" data-a="push" data-v="planImport"><span class="link">Trainingsplan als Text einfügen</span></button></div>
     <h2>Gebuchte Trainings</h2><div class="list">${ss.length?ss.map(s=>`<button class="rowbtn" data-a="editSession" data-id="${s.id}"><span class="grow"><b>${esc(s.title)}</b><br><span class="muted small">${fmtDayLong(s.date)}</span></span><span class="muted">›</span></button>`).join(''):'<div class="muted">Noch nichts gebucht.</div>'}</div>`;
   return{title:'Krafttraining',top,html};
 },
@@ -537,7 +553,9 @@ tedit(c){
 session(c){
   const d=c.draft,tp=d.templateId&&S.templates.find(t=>t.id===d.templateId);
   const html=`<div class="panel"><label class="field" for="s-title">Titel<input id="s-title" type="text" value="${esc(d.title)}" data-in="sTitle"></label>
-      <label class="field" for="s-date">Datum<input id="s-date" type="date" value="${d.date}" data-in="sDate"></label></div>
+      ${d.id?`<label class="field" for="s-date">Datum<input id="s-date" type="date" max="${todayKey()}" value="${d.date}" data-in="sDate"></label>`
+        :`<label class="check" for="s-past"><input type="checkbox" id="s-past" ${d.past?'checked':''} data-in="sPast"><span>Vergessenes Training nachtragen (anderer Tag)</span></label>
+        ${d.past?`<label class="field" for="s-date">An welchem Tag hast du trainiert?<input id="s-date" type="date" max="${todayKey()}" value="${d.date}" data-in="sDate"></label>`:`<span class="muted small">Wird für heute gebucht.</span>`}`}</div>
     ${d.ex.map((e,i)=>{const prev=prevSets(d,e.name);return `<section class="ex">
       <input class="exname" id="ex-${i}" aria-label="Übung" value="${esc(e.name)}" placeholder="Übung" data-in="exName" data-i="${i}">
       ${(()=>{const tg=targetFor(d,e.name);if(!tg)return '';const up=prev&&prev.length&&prev.every(x=>x.r>=tg.repsMax);
@@ -552,7 +570,7 @@ session(c){
     <button class="btn wide" data-a="sAddEx">+ Übung hinzufügen</button>
     ${tp?`<label class="check panel" for="updT"><input type="checkbox" id="updT" ${d.updT?'checked':''} data-in="updT"><span>Geänderte Übungen auch in der Vorlage „${esc(tp.name)}“ speichern</span></label>`:''}
     <p class="muted small" style="margin:0">Übung tauschen: einfach den Namen überschreiben. Die Vorlage bleibt gleich, außer du setzt das Häkchen. Werte in Klammern zeigen das letzte Mal.</p>
-    <button class="btn good wide" data-a="sSave">${d.id?'Änderungen sichern':'Training buchen'}</button>
+    <button class="btn good wide" data-a="sSave">${d.id?'Änderungen sichern':d.date===todayKey()?'Training buchen':'Für '+fmtDay(d.date)+' buchen'}</button>
     ${d.id?(c.confirmDel?`<div class="panel"><span>Dieses Training löschen?</span><div class="rowflex"><button class="btn" data-a="sDelNo">Abbrechen</button><button class="btn danger" data-a="sDelYes">Löschen</button></div></div>`:`<button class="btn danger wide" data-a="sDel">Training löschen</button>`):''}`;
   return{title:d.id?'Training bearbeiten':'Training buchen',html};
 },
@@ -598,6 +616,14 @@ day(c){
       ${[['steps','Schritte'],['active','Aktive kcal'],['resting','Ruheenergie kcal'],...NUTR.map(([n,t,u])=>[n,`${t} (${u})`])].map(([f,t])=>`<label class="field" for="man-${f}">${t}<input id="man-${f}" type="text" inputmode="decimal" value="${fmtRaw(d[f])}" data-in="manual" data-k="${k}" data-f="${f}"></label>`).join('')}
       <span class="muted tiny">Für Tage ohne Sync oder zum Korrigieren.</span></div></details>`;
   return{title:fmtDay(k),sub:fmtDayLong(k),top,html};
+},
+planImport(c){
+  const html=`<div class="panel"><span class="small">Füge deinen Plan als Text ein: Eine Überschrift pro Einheit, darunter je Zeile <b>Nr. · Übung · Sätze · Wdh.</b> Wiederholungsbereiche wie 6–10 werden erkannt. Gibt es schon eine Vorlage mit demselben Namen, wird sie ersetzt.</span>
+    <button class="btn sm" data-a="planMine">Meinen Plan (Torso/Limbs) einsetzen</button>
+    <label class="field" for="planbox">Trainingsplan<textarea id="planbox" style="min-height:220px" placeholder="Dienstag – Torso A&#10;1  Schrägbank Kurzhantel  2  6–10&#10;2  Latzug breit  2  6–10"></textarea></label>
+    <button class="btn" data-a="planPreview">Vorschau</button></div>
+    ${c.preview?`<h2>Vorschau</h2>${c.preview.length?c.preview.map(t=>`<div class="panel"><b>${esc(t.name)}</b><span class="small muted">${t.exercises.map(e=>`${esc(e.name)} · ${e.sets} × ${repRange(e)}`).join('<br>')}</span></div>`).join('')+`<button class="btn primary wide" data-a="planSave">${c.preview.length} Vorlagen speichern</button>`:'<p class="muted">Im Text wurde kein Plan erkannt.</p>'}`:''}`;
+  return{title:'Plan einfügen',html};
 },
 week(c){
   const ws=parseYmd(c.k),sm=weekSummary(ws),en=S.settings.dashboard,tk=todayKey();
@@ -847,6 +873,11 @@ const A={
   toggleGoal(el){const k=el.dataset.k,a=S.settings.dashboard;S.settings.dashboard=a.includes(k)?a.filter(x=>x!==k):[...a,k];save();render()},
   moveGoal(el){const a=S.settings.dashboard,i=a.indexOf(el.dataset.k),j=i+Number(el.dataset.d);if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save();render()},
   weekly(el){S.settings.weekly=Math.max(1,Math.min(14,S.settings.weekly+Number(el.dataset.d)));save();render()},
+  planMine(){$('#planbox').value=MY_PLAN;cur().text=MY_PLAN;cur().preview=parsePlan(MY_PLAN);render();$('#planbox').value=MY_PLAN},
+  planPreview(){const t=$('#planbox').value;cur().text=t;cur().preview=parsePlan(t);render();$('#planbox').value=t},
+  planSave(){const list=cur().preview||[];
+    list.forEach(p=>{const ex=S.templates.find(t=>norm(t.name)===norm(p.name));if(ex)ex.exercises=p.exercises;else S.templates.push({id:uid(),name:p.name,exercises:p.exercises})});
+    save();back();toast(list.length+' Vorlagen gespeichert')},
   newTemplate(){push({v:'tedit',draft:{name:'',exercises:[{name:'',sets:3,reps:'8-12'}]}})},
   editTemplate(el){const t=S.templates.find(x=>x.id===el.dataset.id);push({v:'tedit',id:t.id,draft:{name:t.name,exercises:t.exercises.map(e=>({name:e.name,sets:e.sets,reps:repRange(e).replace('–','-')}))}})},
   tAdd(){cur().draft.exercises.push({name:'',sets:3,reps:'8-12'});render()},
@@ -918,7 +949,8 @@ const INPUTS={
   tname(el){cur().draft.name=el.value},
   tex(el){cur().draft.exercises[Number(el.dataset.i)][el.dataset.f]=el.value},
   sTitle(el){cur().draft.title=el.value},
-  sDate(el){if(el.value)cur().draft.date=el.value},
+  sDate(el){if(el.value)cur().draft.date=el.value>todayKey()?todayKey():el.value},
+  sPast(el){const d=cur().draft;d.past=el.checked;if(!d.past)d.date=todayKey();else if(d.date===todayKey())d.date=ymd(addDays(new Date(),-1));render()},
   exName(el){cur().draft.ex[Number(el.dataset.i)].name=el.value},
   set(el){cur().draft.ex[Number(el.dataset.i)].sets[Number(el.dataset.j)][el.dataset.f]=el.value},
   updT(el){cur().draft.updT=el.checked},
