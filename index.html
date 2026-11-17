@@ -22,6 +22,8 @@
   --bg:#f2f4f7; --surface:#ffffff; --surface-2:#e8ecf2; --fg:#131923; --muted:#5b6678; --line:#d6dce5;
   --accent:#2c56cc; --accent-fg:#ffffff; --accent-soft:#dfe6fa;
   --good:#18924d; --good-soft:#d9f1e3; --bad:#cf3b3b; --warn:#d07c12; --nodata:#c2c9d4;
+  --c-steps:#2c56cc; --c-steps-soft:#e3e9fb; --c-food:#0e8a7d; --c-food-soft:#d6f0ec; --c-gym:#7a4fd6; --c-gym-soft:#ece5fb;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 6px 16px rgba(16,24,40,.06); --tabbar:rgba(255,255,255,.84); --good-card:#18924d;
   --font-display:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;
   --font-body:"Inter",ui-sans-serif,system-ui,-apple-system,sans-serif;
   --r:16px;
@@ -29,11 +31,15 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0d1117; --surface:#161c25; --surface-2:#212a36; --fg:#e7ebf1; --muted:#95a1b3; --line:#2a3340;
   --accent:#7495ff; --accent-fg:#0d1117; --accent-soft:#1d2946;
-  --good:#2bb366; --good-soft:#163524; --bad:#f06262; --warn:#f2a142; --nodata:#3a4351; color-scheme:dark}}
+  --good:#2bb366; --good-soft:#163524; --bad:#f06262; --warn:#f2a142; --nodata:#3a4351;
+  --c-steps:#7f9dff; --c-steps-soft:#1d2946; --c-food:#3cc4b3; --c-food-soft:#12302d; --c-gym:#ab8dff; --c-gym-soft:#29213f;
+  --shadow:0 0 0 1px #1f2732; --tabbar:rgba(22,28,37,.86); --good-card:#1a7d47; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0d1117; --surface:#161c25; --surface-2:#212a36; --fg:#e7ebf1; --muted:#95a1b3; --line:#2a3340;
   --accent:#7495ff; --accent-fg:#0d1117; --accent-soft:#1d2946;
-  --good:#2bb366; --good-soft:#163524; --bad:#f06262; --warn:#f2a142; --nodata:#3a4351; color-scheme:dark}
+  --good:#2bb366; --good-soft:#163524; --bad:#f06262; --warn:#f2a142; --nodata:#3a4351;
+  --c-steps:#7f9dff; --c-steps-soft:#1d2946; --c-food:#3cc4b3; --c-food-soft:#12302d; --c-gym:#ab8dff; --c-gym-soft:#29213f;
+  --shadow:0 0 0 1px #1f2732; --tabbar:rgba(22,28,37,.86); --good-card:#1a7d47; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
@@ -60,7 +66,7 @@ button.rowbtn{cursor:pointer}
 .card .val{font-family:var(--font-display);font-size:30px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
 .card .line2{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .card .detail{color:var(--muted);font-size:14px}
-.card.met{background:var(--good);color:#fff}
+.card.met{background:var(--good-card);color:#fff}
 .card.met .detail{color:rgba(255,255,255,.88)}
 .card.met .bar{background:rgba(255,255,255,.3)} .card.met .bar i{background:#fff}
 .card.missed{border-color:var(--bad)}
@@ -177,6 +183,24 @@ table.tbl tr.click{cursor:pointer}
 .sexsel{display:flex;gap:6px}
 .fc{display:flex;flex-direction:column;gap:2px;background:var(--surface-2);border-radius:12px;padding:10px 12px}
 .scale{position:relative;height:16px;margin-top:4px}.scale span{position:absolute;transform:translateX(-50%)}.scale span:first-child{transform:none}.scale span:last-child{transform:translateX(-100%)}
+.panel,.list,.card,details,.calgrid{box-shadow:var(--shadow)}
+.card{border-radius:22px;padding:18px;transition:transform .15s ease}
+.card:active{transform:scale(.985)}
+.card .head{gap:10px}
+.ico{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none}
+.card .head .ico svg{width:19px;height:19px}
+.ico-steps{background:var(--c-steps-soft);color:var(--c-steps)} .ico-nutrition{background:var(--c-food-soft);color:var(--c-food)} .ico-workout{background:var(--c-gym-soft);color:var(--c-gym)}
+.card.met .ico{background:rgba(255,255,255,.22);color:#fff}
+.bar i.k-steps{background:var(--c-steps)} .bar i.k-nutrition{background:var(--c-food)} .bar i.k-workout{background:var(--c-gym)}
+.bar{height:9px}
+nav.tabs{background:var(--tabbar);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px)}
+header.top h1{font-size:30px}
+h2{margin-top:14px}
+.bmiwrap{position:relative;padding-top:5px}
+.bmi{display:flex;height:10px;border-radius:99px;overflow:hidden;gap:2px}
+.bmi i{display:block;height:100%}
+.bmi .z1{width:17.5%;background:var(--warn);opacity:.55}.bmi .z2{width:32.5%;background:var(--good);opacity:.75}.bmi .z3{width:25%;background:var(--warn);opacity:.55}.bmi .z4{width:25%;background:var(--bad);opacity:.6}
+.bmimark{position:absolute;top:0;width:5px;height:20px;border-radius:3px;background:var(--fg);transform:translateX(-50%);box-shadow:0 0 0 2px var(--surface)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -248,7 +272,7 @@ function parseNum(s){
 /* ---------- Speicher ---------- */
 const MEASURES_DEFAULT=['Hals','Brust','Taille','Bauch','Hüfte','Oberarm','Oberschenkel','Wade','Körperfett'];
 const mUnit=n=>/fett/i.test(n)?'%':'cm';
-function defaults(){return{settings:{dashboard:['steps','nutrition','workout'],stepGoal:10000,stepWeekAvg:10000,nutrition:{},weekly:4,shortcut:'FitDash Sync',bmr:null,measures:[...MEASURES_DEFAULT]},days:{},body:{},templates:[],sessions:[],demo:false,lastSync:null,recapSeen:null,profile:{name:'',sex:null,height:null,birth:null,targetWeight:null,goalStart:null}}}
+function defaults(){return{settings:{dashboard:['steps','nutrition','workout'],stepGoal:10000,stepWeekAvg:10000,nutrition:{},weekly:4,shortcut:'FitDash Sync',bmr:null,theme:'system',measures:[...MEASURES_DEFAULT]},days:{},body:{},templates:[],sessions:[],demo:false,lastSync:null,recapSeen:null,profile:{name:'',sex:null,height:null,birth:null,targetWeight:null,goalStart:null}}}
 // Wiederholungen als Bereich, z. B. 6–10
 function repRange(e){if(!e)return '';if(e.repsMin!=null)return e.repsMin===e.repsMax?String(e.repsMin):`${e.repsMin}–${e.repsMax}`;return e.reps!=null?String(e.reps):''}
 function parseRange(v){const m=String(v??'').match(/(\d+)\s*(?:[-–—\/]|bis|\s)\s*(\d+)/i);
@@ -503,6 +527,10 @@ const cur=()=>stacks[tab][stacks[tab].length-1];
 function push(o){stacks[tab].push(o);render();window.scrollTo(0,0)}
 function back(){if(stacks[tab].length>1){stacks[tab].pop();render()}}
 function switchTab(t){if(t===tab&&stacks[t].length>1){stacks[t]=[stacks[t][0]]}tab=t;render();window.scrollTo(0,0)}
+function applyTheme(){const t=S.settings.theme||'system',r=document.documentElement;
+  if(t==='system')delete r.dataset.theme;else r.dataset.theme=t;
+  let m=document.querySelector('meta[name="theme-color"]');if(!m){m=document.createElement('meta');m.name='theme-color';document.head.appendChild(m)}
+  m.content=getComputedStyle(document.body).getPropertyValue('--bg').trim()||'#f2f4f7'}
 function render(){
   const c=cur(),r=VIEWS[c.v](c);
   $('#title').textContent=r.title;$('#subtitle').textContent=r.sub||'';
@@ -740,7 +768,7 @@ profile(c){
       <div class="kpis"><div class="kpi"><b>${a??'–'}</b><span>Jahre</span></div>
       <div class="kpi"><b>${p.height?fmtInt(p.height):'–'}</b><span>cm Größe</span></div>
       <div class="kpi"><b>${bmr?fmtInt(bmr):'–'}</b><span>kcal Grundumsatz*</span></div></div>
-      ${b?`<div>${bar((b-15)/20,bmiCat(b)[1]==='met'?'good':bmiCat(b)[1]==='missed'?'bad':'warn')}<div class="scale tiny muted"><span style="left:0">15</span><span style="left:17.5%">18,5</span><span style="left:50%">25</span><span style="left:75%">30</span><span style="left:100%">35</span></div></div>`:''}
+      ${b?`<div class="bmiwrap" aria-label="BMI ${fmt1(b)} auf der Skala von 15 bis 35"><div class="bmi"><i class="z1"></i><i class="z2"></i><i class="z3"></i><i class="z4"></i></div><span class="bmimark" style="left:${Math.max(1,Math.min(99,(b-15)/20*100))}%"></span></div><div class="scale tiny muted"><span style="left:0">15</span><span style="left:17.5%">18,5</span><span style="left:50%">25</span><span style="left:75%">30</span><span style="left:100%">35</span></div>`:''}
       <span class="muted tiny">*Mifflin-St-Jeor-Formel. Wird für das Kaloriendefizit genutzt, wenn Apple Health keine Ruheenergie liefert.</span></div>
     <h2>Zielgewicht</h2>${goal||'<div class="panel muted small">Trag unten ein Zielgewicht ein, dann berechne ich, wann du es erreichst.</div>'}
     <h2>Körperfett</h2><div class="list">${bf.length?bf.map((x,i)=>`<div><span class="grow"><b>${x.method}</b>${i===0?' <span class="chip st-met" style="padding:0 6px">Hauptwert</span>':''}<br><span class="muted tiny">${x.note}</span></span><b class="num">${fmt1(x.v)} %</b></div>`).join(''):'<div class="muted">Noch nicht berechenbar.</div>'}
@@ -816,7 +844,10 @@ sync(c){
   return{title:'Synchronisieren',top,html};
 },
 more(){
-  const html=`<div class="list"><button class="rowbtn" data-a="push" data-v="customize"><span class="grow">Dashboard anpassen</span><span class="muted">›</span></button></div>
+  const th=S.settings.theme||'system';
+  const html=`<h2 style="margin-top:0">Darstellung</h2><div class="panel"><div class="seg" role="radiogroup" aria-label="Darstellung">${[['system','Automatisch'],['light','Hell'],['dark','Dunkel']].map(([k,t])=>`<button class="${th===k?'on':''}" role="radio" aria-checked="${th===k}" data-a="theme" data-t="${k}">${t}</button>`).join('')}</div>
+    <span class="muted tiny">Automatisch folgt der Einstellung deines iPhones.</span></div>
+    <div class="list"><button class="rowbtn" data-a="push" data-v="customize"><span class="grow">Dashboard anpassen</span><span class="muted">›</span></button></div>
     <h2>Kurzbefehl</h2><div class="panel"><label class="field" for="scname">Name deines Kurzbefehls<input id="scname" type="text" value="${esc(S.settings.shortcut)}" data-in="scname"></label></div>
     <h2>Energieverbrauch</h2><div class="panel"><label class="field" for="bmr">Grundumsatz in kcal pro Tag<input id="bmr" type="text" inputmode="numeric" placeholder="z. B. 1750" value="${S.settings.bmr??''}" data-in="bmr"></label>
       <span class="muted small">Nur nötig, wenn keine Ruheenergie aus Apple Health kommt. Damit wird das Kaloriendefizit berechnet.</span></div>
@@ -880,15 +911,15 @@ function card(k,tk,d){
   let val,det,p,st,extra='';
   if(k==='steps'){const g=S.settings.stepGoal;val=fmtInt(d.steps);det=`von ${fmtInt(g)} Schritten`;p=(d.steps||0)/g;st=stepsStatus(tk);
     const w=weekSteps(weekStart(new Date()));if(w.target){const ws2=weekAvgStatus(weekStart(new Date()));
-      extra=`<span class="line2 small" style="margin-top:2px"><span>Wochen-Ø <b class="num">${fmtInt(w.avg)}</b></span><span class="detail">Ziel Ø ${fmtInt(w.target)}${ws2==='met'?' ✓':''}</span></span>${bar(w.avg/w.target,ws2==='met'?'good':'')}`}}
+      extra=`<span class="line2 small" style="margin-top:2px"><span>Wochen-Ø <b class="num">${fmtInt(w.avg)}</b></span><span class="detail">Ziel Ø ${fmtInt(w.target)}${ws2==='met'?' ✓':''}</span></span>${bar(w.avg/w.target,ws2==='met'?'good':'k-steps')}`}}
   else if(k==='nutrition'){
     const tg=S.settings.nutrition,act=NUTR.filter(([n])=>isSet(tg[n])),met=act.filter(([n])=>isMet(tg[n],d[n]||0)).length,ref=tg.kcal?(tg.kcal.max??tg.kcal.min):null;
     val=`${fmtInt(d.kcal)} kcal`;det=act.length?`${met} von ${act.length} Werten im Ziel`:'Keine Zielwerte festgelegt';
     p=ref?(d.kcal||0)/ref:(act.length?met/act.length:0);st=nutrStatus(tk);
   }else{const c=weekCount(weekStart(new Date())),t=S.settings.weekly;val=`${c} / ${t}`;det='Einheiten diese Woche';p=c/t;st=c>=t?'met':'pending'}
   return `<button class="card ${st==='met'?'met':''} ${st==='missed'?'missed':''}" data-a="push" data-v="${k}">
-    <span class="head">${ICON[k]}<span class="grow">${GOALS[k].t}</span>${st==='met'?'<span class="small">Erreicht</span>':''}<span aria-hidden="true">›</span></span>
-    <span class="line2"><span class="val">${val}</span><span class="detail">${det}</span></span>${bar(p,st==='missed'?'bad':'')}${extra||''}</button>`;
+    <span class="head"><span class="ico ico-${k}">${ICON[k]}</span><span class="grow">${GOALS[k].t}</span>${st==='met'?'<span class="small">Erreicht</span>':''}<span aria-hidden="true">›</span></span>
+    <span class="line2"><span class="val">${val}</span><span class="detail">${det}</span></span>${bar(p,st==='missed'?'bad':'k-'+k)}${extra||''}</button>`;
 }
 
 // Schritte: Wochendurchschnitt (Mo–So)
@@ -1080,6 +1111,7 @@ const A={
   reset(){S._confirmReset=true;render()},resetNo(){delete S._confirmReset;render()},
   resetYes(){S=defaults();save();toast('Alle Daten gelöscht');render()},
   week(el){push({v:'week',k:el.dataset.k})},
+  theme(el){S.settings.theme=el.dataset.t;save();applyTheme();render()},
   pfSex(el){S.profile.sex=el.dataset.s;save();render()},
   pfSaveWeight(){const v=parseNum($('#pfWeight').value);if(!v||v<20){toast('Bitte ein Gewicht in kg eingeben');return}
     (S.body[todayKey()]=S.body[todayKey()]||{}).weight=Math.round(v*10)/10;save();render();toast('Gewicht gespeichert')},
@@ -1156,6 +1188,7 @@ document.addEventListener('visibilitychange',()=>{
     checkRecap();
   }
 });
+applyTheme();
 render();
 checkRecap();
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!location.hostname.endsWith('claude.ai')){navigator.serviceWorker.register('sw.js').catch(()=>{})}

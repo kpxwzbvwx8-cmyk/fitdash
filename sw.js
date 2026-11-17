@@ -1,5 +1,5 @@
 // Offline-Cache: App startet auch ohne Internet
-const C='fitdash-v5';
+const C='fitdash-v6';
 self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(['./','index.html','icon-180.png','manifest.webmanifest'])).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;
