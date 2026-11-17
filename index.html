@@ -769,14 +769,25 @@ function updatePrev(i){
 
 /* ---------- Import ---------- */
 const KEYMAP={schritte:'steps',steps:'steps',aktiv:'active',aktive:'active',active:'active',kcal:'kcal',kalorien:'kcal',energie:'kcal',nahrungsenergie:'kcal',protein:'protein',eiweiss:'protein','eiweiß':'protein',fett:'fat',fat:'fat',kh:'carbs',kohlenhydrate:'carbs',carbs:'carbs',ballaststoffe:'fiber',fiber:'fiber',datum:'date',date:'date',ruhe:'resting',ruheenergie:'resting',resting:'resting',gewicht:'weight',weight:'weight'};
+const MONTHS=['jan','feb','mär','apr','mai','jun','jul','aug','sep','okt','nov','dez'];
+const MONTHS_EN=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+const WEEKDAYS=[['sonntag','sunday'],['montag','monday'],['dienstag','tuesday'],['mittwoch','wednesday'],['donnerstag','thursday'],['freitag','friday'],['samstag','saturday']];
+function monthIdx(w){w=w.toLowerCase().replace('ä','a').slice(0,3);let i=MONTHS.map(m=>m.replace('ä','a')).indexOf(w);if(i<0)i=MONTHS_EN.indexOf(w);if(w==='mrz')i=2;return i}
+function noYear(d,m){ // Datum ohne Jahr: dieses Jahr, außer es läge in der Zukunft
+  const now=new Date();let x=new Date(now.getFullYear(),m,d);if(x>addDays(now,1))x=new Date(now.getFullYear()-1,m,d);return ymd(x)}
 function parseDate(v){
-  v=String(v).trim().toLowerCase();
-  if(v.startsWith('heute')) return todayKey();
-  if(v.startsWith('gestern')) return ymd(addDays(new Date(),-1));
+  v=String(v).trim().toLowerCase();if(!v)return null;
   let m=v.match(/(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
-  m=v.match(/(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{2,4})/); if(m) return `${m[3].length===2?'20'+m[3]:m[3]}-${pad(m[2])}-${pad(m[1])}`;
-  const months=['januar','februar','märz','april','mai','juni','juli','august','september','oktober','november','dezember'];
-  m=v.match(/(\d{1,2})\.?\s*([a-zäöü]+)\.?\s*(\d{4})/); if(m){const i=months.findIndex(x=>x.startsWith(m[2].slice(0,3)));if(i>=0) return `${m[3]}-${pad(i+1)}-${pad(m[1])}`}
+  m=v.match(/(\d{1,2})\.(\d{1,2})\.(\d{4}|\d{2})(?!\d)/); if(m) return `${m[3].length===2?'20'+m[3]:m[3]}-${pad(m[2])}-${pad(m[1])}`;
+  m=v.match(/(\d{1,2})\.?\s+([a-zäöü]{3,})\.?,?\s+(\d{4})/); if(m&&monthIdx(m[2])>=0) return `${m[3]}-${pad(monthIdx(m[2])+1)}-${pad(m[1])}`;
+  m=v.match(/([a-z]{3,})\.?\s+(\d{1,2}),?\s+(\d{4})/); if(m&&monthIdx(m[1])>=0) return `${m[3]}-${pad(monthIdx(m[1])+1)}-${pad(m[2])}`;
+  m=v.match(/(\d{1,2})\.?\s+([a-zäöü]{3,})/); if(m&&monthIdx(m[2])>=0) return noYear(+m[1],monthIdx(m[2]));
+  m=v.match(/([a-z]{3,})\.?\s+(\d{1,2})(?!\d)/); if(m&&monthIdx(m[1])>=0) return noYear(+m[2],monthIdx(m[1]));
+  m=v.match(/(\d{1,2})\.(\d{1,2})\.(?!\d)/); if(m) return noYear(+m[1],+m[2]-1);
+  if(/vorgestern/.test(v)) return ymd(addDays(new Date(),-2));
+  if(/gestern|yesterday/.test(v)) return ymd(addDays(new Date(),-1));
+  if(/heute|today/.test(v)) return todayKey();
+  for(let i=0;i<7;i++){if(WEEKDAYS[i].some(w=>v.includes(w))){const t=new Date();let back=(t.getDay()-i+7)%7;if(back===0)back=7;return ymd(addDays(t,-back))}}
   return null;
 }
 function importText(text){
@@ -786,13 +797,14 @@ function importText(text){
     if(/^\s*fitdash\s*$/i.test(line)){if(cur&&Object.keys(cur).length)blocks.push(cur);cur={};continue}
     if(!m) continue; const f=KEYMAP[m[1].toLowerCase()]; if(!f) continue;
     cur=cur||{};
-    if(f==='date'){if(cur.date){blocks.push(cur);cur={}}const dk=parseDate(m[2]);if(dk)cur.date=dk}
+    if(f==='date'){if(cur.date||cur.badDate){blocks.push(cur);cur={}}const dk=parseDate(m[2]);if(dk)cur.date=dk;else if(m[2].trim())cur.badDate=m[2].trim()}
     else if(f==='weight'){const w=parseImportNum(m[2]);if(w&&w>20)cur.weight=w}
     else cur[f]=parseImportNum(m[2])??0;
   }
   if(cur&&Object.keys(cur).length) blocks.push(cur);
-  const done=[];
+  const done=[];importText.bad=[];
   for(const b of blocks){
+    if(b.badDate){importText.bad.push(b.badDate);continue}
     const k=b.date||todayKey(); const vals={};
     ['steps','active','resting',...NUTR.map(n=>n[0])].forEach(f=>{if(b[f]!=null) vals[f]=b[f]});
     if(b.weight){(S.body[k]=S.body[k]||{}).weight=Math.round(b.weight*10)/10}
@@ -804,13 +816,15 @@ function importText(text){
 }
 function doImport(text){
   const done=importText(text);
+  const bad=importText.bad||[];
+  if(bad.length&&!done.length){const c=stacks.sync[0];c.msg=null;c.err=`Das Datum wurde nicht erkannt: „${esc(bad[0])}“. Bitte schick diesen Text an Claude oder stell im Kurzbefehl beim Startdatum das Format „ISO 8601“ ein.`;tab='sync';stacks.sync=[c];render();return}
   if(!done.length){
     const c=stacks.sync[0];c.msg=null;
     c.err=String(text||'').trim()?`Im eingefügten Text wurden keine Werte erkannt. Angekommen ist: „${esc(String(text).trim().slice(0,160))}“`:'Die Zwischenablage war leer. Der Kurzbefehl hat nichts kopiert: Prüfe, ob am Ende „In Zwischenablage kopieren“ mit „Text“ steht.';
     tab='sync';stacks.sync=[c];render();const b=$('#pastebox');if(b)b.value=String(text||'');return}
   stacks.sync[0].err=null;
-  const k=done[done.length-1],d=S.days[k];
-  const c=stacks.sync[0]; c.msg=`${done.length>1?done.length+' Tage':fmtDayLong(k)}: ${fmtInt(d.steps)} Schritte, ${fmtInt(d.kcal)} kcal, ${fmt1(d.protein)} g Protein`;
+  const days=[...new Set(done)].sort(),k=days[days.length-1],d=S.days[k]||{};
+  const c=stacks.sync[0]; c.msg=days.length>1?`${days.length} Tage übernommen (${fmtDay(days[0])} bis ${fmtDay(k)}).${bad.length?` ${bad.length} Block/Blöcke mit unbekanntem Datum übersprungen.`:''}`:`${fmtDayLong(k)}: ${fmtInt(d.steps)} Schritte, ${fmtInt(d.kcal)} kcal, ${fmt1(d.protein)} g Protein`;
   toast('Daten übernommen');
   tab='sync';stacks.sync=[c];render();
 }
